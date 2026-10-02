@@ -16,3 +16,17 @@ PaymentGateway.sln
 ```
 
 Feel free to change the structure of the solution, use a different test library etc.
+
+## Running locally
+
+Full stack (API + bank simulator), Swagger at http://localhost:5067/swagger:
+```
+docker compose up --build
+docker compose logs -f payment_gateway
+```
+
+Development (debugging, hot reload): run only the bank in Docker and the API from your IDE or:
+```
+docker compose up bank_simulator
+dotnet run --project src/PaymentGateway.Api
+```
