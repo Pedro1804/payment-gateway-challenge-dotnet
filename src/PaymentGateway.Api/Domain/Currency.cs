@@ -2,7 +2,17 @@ namespace PaymentGateway.Api.Domain;
 
 public sealed record Currency
 {
-    public Currency(string? code) => throw new NotImplementedException();
+    private static readonly HashSet<string> SupportedCodes = ["EUR", "USD", "GBP"];
 
-    public string Code => throw new NotImplementedException();
+    public Currency(string? code)
+    {
+        if (code is null || !SupportedCodes.Contains(code))
+        {
+            throw new InvalidPaymentException("currency", "Currency must be one of EUR, USD or GBP.");
+        }
+
+        Code = code;
+    }
+
+    public string Code { get; }
 }
