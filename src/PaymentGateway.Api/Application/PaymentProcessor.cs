@@ -8,9 +8,11 @@ public sealed class PaymentProcessor(IAcquiringBank bank, ILogger<PaymentProcess
     public async Task<PaymentDecision> ProcessAsync(CardPayment payment, CancellationToken cancellationToken)
     {
         var authorization = await bank.AuthorizeAsync(payment, cancellationToken);
-        var status = authorization.IsAuthorized ? PaymentStatus.Authorized : PaymentStatus.Declined;
-        var decision = new PaymentDecision(Guid.NewGuid(), status, payment, authorization.AuthorizationCode);
+        var decision = new PaymentDecision(Guid.NewGuid(), ToStatus(authorization), payment, authorization.AuthorizationCode);
         logger.LogInformation("Payment {PaymentId} processed with status {Status}", decision.Id, decision.Status);
         return decision;
     }
+
+    private static PaymentStatus ToStatus(BankAuthorization authorization) =>
+        authorization.IsAuthorized ? PaymentStatus.Authorized : PaymentStatus.Declined;
 }

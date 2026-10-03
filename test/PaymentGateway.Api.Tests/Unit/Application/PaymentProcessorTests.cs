@@ -12,6 +12,9 @@ namespace PaymentGateway.Api.Tests.Unit.Application;
 
 public class PaymentProcessorTests
 {
+    private static readonly BankAuthorization AuthorizedByBank = new(true, "auth-code");
+    private static readonly BankAuthorization DeclinedByBank = new(false, null);
+
     private readonly IAcquiringBank _bank = Substitute.For<IAcquiringBank>();
     private readonly CardPayment _cardPayment = PaymentRequests.Valid().ToCardPayment(PaymentRequests.Today);
     private readonly PaymentProcessor _processor;
@@ -25,14 +28,14 @@ public class PaymentProcessorTests
     public async Task AuthorizesThePaymentWhenTheBankAuthorizesIt()
     {
         // Arrange
-        BankAnswers(new BankAuthorization(true, "auth-code"));
+        BankAnswers(AuthorizedByBank);
 
         // Act
         var decision = await _processor.ProcessAsync(_cardPayment, CancellationToken.None);
 
         // Assert
         Assert.Equal(PaymentStatus.Authorized, decision.Status);
-        Assert.Equal("auth-code", decision.AuthorizationCode);
+        Assert.Equal(AuthorizedByBank.AuthorizationCode, decision.AuthorizationCode);
         Assert.Equal(_cardPayment, decision.CardPayment);
         Assert.NotEqual(Guid.Empty, decision.Id);
     }
@@ -41,7 +44,7 @@ public class PaymentProcessorTests
     public async Task DeclinesThePaymentWhenTheBankDeclinesIt()
     {
         // Arrange
-        BankAnswers(new BankAuthorization(false, null));
+        BankAnswers(DeclinedByBank);
 
         // Act
         var decision = await _processor.ProcessAsync(_cardPayment, CancellationToken.None);
@@ -56,7 +59,7 @@ public class PaymentProcessorTests
     public async Task SubmitsTheReceivedCardPaymentToTheBank()
     {
         // Arrange
-        BankAnswers(new BankAuthorization(true, "auth-code"));
+        BankAnswers(AuthorizedByBank);
 
         // Act
         await _processor.ProcessAsync(_cardPayment, CancellationToken.None);
@@ -69,7 +72,7 @@ public class PaymentProcessorTests
     public async Task GivesEachPaymentItsOwnId()
     {
         // Arrange
-        BankAnswers(new BankAuthorization(true, "auth-code"));
+        BankAnswers(AuthorizedByBank);
 
         // Act
         var first = await _processor.ProcessAsync(_cardPayment, CancellationToken.None);
