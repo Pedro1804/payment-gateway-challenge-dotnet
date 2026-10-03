@@ -2,8 +2,10 @@ namespace PaymentGateway.Api.Domain;
 
 public sealed record Amount
 {
-    public Amount(int? minorUnits)
+    public Amount(int? minorUnits, string? currency)
     {
+        Currency = new Currency(currency);
+
         if (minorUnits is not > 0)
         {
             throw new InvalidPaymentException("amount", "Amount must be a positive integer in minor currency units.");
@@ -13,4 +15,6 @@ public sealed record Amount
     }
 
     public int MinorUnits { get; }
+
+    public Currency Currency { get; }
 }

@@ -10,8 +10,10 @@ public class CurrencyTests
     [InlineData("GBP")]
     public void AcceptsSupportedCurrencies(string code)
     {
+        // Act
         var currency = new Currency(code);
 
+        // Assert
         Assert.Equal(code, currency.Code);
     }
 
@@ -23,8 +25,10 @@ public class CurrencyTests
     [InlineData("EURO")]
     public void RejectsMissingUnsupportedOrMiscasedCurrencies(string? code)
     {
+        // Act
         var exception = Assert.Throws<InvalidPaymentException>(() => new Currency(code));
 
+        // Assert
         Assert.Equal("currency", exception.Field);
     }
 }

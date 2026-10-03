@@ -9,8 +9,10 @@ public class CardNumberTests
     [InlineData("1234567890123456789")]
     public void AcceptsCardNumbersOf14To19Digits(string digits)
     {
+        // Act
         var cardNumber = new CardNumber(digits);
 
+        // Assert
         Assert.Equal(digits, cardNumber.Value);
     }
 
@@ -24,24 +26,36 @@ public class CardNumberTests
     [InlineData("١٢٣٤٥٦٧٨٩٠١٢٣٤")]
     public void RejectsMissingOrMalformedCardNumbers(string? digits)
     {
+        // Act
         var exception = Assert.Throws<InvalidPaymentException>(() => new CardNumber(digits));
 
+        // Assert
         Assert.Equal("cardNumber", exception.Field);
     }
 
     [Fact]
     public void LastFourKeepsLeadingZeros()
     {
+        // Arrange
         var cardNumber = new CardNumber("12345678900123");
 
-        Assert.Equal("0123", cardNumber.LastFour);
+        // Act
+        var lastFour = cardNumber.LastFour;
+
+        // Assert
+        Assert.Equal("0123", lastFour);
     }
 
     [Fact]
     public void ToStringDoesNotExposeTheFullCardNumber()
     {
+        // Arrange
         var cardNumber = new CardNumber("12345678904242");
 
-        Assert.DoesNotContain("12345678904242", cardNumber.ToString());
+        // Act
+        var text = cardNumber.ToString();
+
+        // Assert
+        Assert.DoesNotContain("12345678904242", text);
     }
 }

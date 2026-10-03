@@ -1,6 +1,6 @@
 using PaymentGateway.Api.Models.Requests;
 
-namespace PaymentGateway.Api.Tests.Unit.Models;
+namespace PaymentGateway.Api.Tests;
 
 public static class PaymentRequests
 {

@@ -1,52 +1,69 @@
 using PaymentGateway.Api.Domain;
 using PaymentGateway.Api.Models.Requests;
+using PaymentGateway.Api.Services;
 
-namespace PaymentGateway.Api.Tests.Unit.Models;
+namespace PaymentGateway.Api.Tests.Unit.Services;
 
 public class PostPaymentRequestMapperTests
 {
     [Fact]
     public void MapsAValidRequestToACardPayment()
     {
-        var payment = PaymentRequests.Valid().ToCardPayment(PaymentRequests.Today);
+        // Arrange
+        var request = PaymentRequests.Valid();
 
+        // Act
+        var payment = request.ToCardPayment(PaymentRequests.Today);
+
+        // Assert
         Assert.Equal("2222405343248877", payment.CardNumber.Value);
         Assert.Equal(4, payment.Expiry.Month);
         Assert.Equal(2027, payment.Expiry.Year);
-        Assert.Equal("GBP", payment.Currency.Code);
         Assert.Equal(1050, payment.Amount.MinorUnits);
+        Assert.Equal("GBP", payment.Amount.Currency.Code);
         Assert.Equal("123", payment.Cvv.Value);
     }
 
     [Fact]
     public void RejectsTheFirstInvalidFieldInRequestOrder()
     {
+        // Arrange
         var request = PaymentRequests.Valid();
         request.Currency = "JPY";
         request.Cvv = "12";
 
+        // Act
         var exception = Assert.Throws<InvalidPaymentException>(() => request.ToCardPayment(PaymentRequests.Today));
 
+        // Assert
         Assert.Equal("currency", exception.Field);
     }
 
     [Fact]
     public void RejectsAnEmptyRequestOnTheCardNumber()
     {
-        var exception = Assert.Throws<InvalidPaymentException>(
-            () => new PostPaymentRequest().ToCardPayment(PaymentRequests.Today));
+        // Arrange
+        var request = new PostPaymentRequest();
 
+        // Act
+        var exception = Assert.Throws<InvalidPaymentException>(() => request.ToCardPayment(PaymentRequests.Today));
+
+        // Assert
         Assert.Equal("cardNumber", exception.Field);
     }
 
     [Fact]
     public void CardPaymentToStringDoesNotExposeCardNumberOrCvv()
     {
+        // Arrange
         var request = PaymentRequests.Valid();
-
         var payment = request.ToCardPayment(PaymentRequests.Today);
 
-        Assert.DoesNotContain(request.CardNumber!, payment.ToString());
-        Assert.DoesNotContain(request.Cvv!, payment.ToString());
+        // Act
+        var text = payment.ToString();
+
+        // Assert
+        Assert.DoesNotContain(request.CardNumber!, text);
+        Assert.DoesNotContain(request.Cvv!, text);
     }
 }

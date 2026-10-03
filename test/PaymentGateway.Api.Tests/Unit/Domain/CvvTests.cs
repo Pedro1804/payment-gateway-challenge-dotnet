@@ -10,8 +10,10 @@ public class CvvTests
     [InlineData("012")]
     public void AcceptsCvvsOf3Or4Digits(string digits)
     {
+        // Act
         var cvv = new Cvv(digits);
 
+        // Assert
         Assert.Equal(digits, cvv.Value);
     }
 
@@ -24,16 +26,23 @@ public class CvvTests
     [InlineData("١٢٣")]
     public void RejectsMissingOrMalformedCvvs(string? digits)
     {
+        // Act
         var exception = Assert.Throws<InvalidPaymentException>(() => new Cvv(digits));
 
+        // Assert
         Assert.Equal("cvv", exception.Field);
     }
 
     [Fact]
     public void ToStringDoesNotExposeTheCvv()
     {
+        // Arrange
         var cvv = new Cvv("987");
 
-        Assert.DoesNotContain("987", cvv.ToString());
+        // Act
+        var text = cvv.ToString();
+
+        // Assert
+        Assert.DoesNotContain("987", text);
     }
 }

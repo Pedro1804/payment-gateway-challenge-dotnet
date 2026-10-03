@@ -10,9 +10,12 @@ public class AmountTests
     [InlineData(int.MaxValue)]
     public void AcceptsPositiveAmountsInMinorUnits(int minorUnits)
     {
-        var amount = new Amount(minorUnits);
+        // Act
+        var amount = new Amount(minorUnits, "GBP");
 
+        // Assert
         Assert.Equal(minorUnits, amount.MinorUnits);
+        Assert.Equal("GBP", amount.Currency.Code);
     }
 
     [Theory]
@@ -21,8 +24,20 @@ public class AmountTests
     [InlineData(-1)]
     public void RejectsMissingZeroOrNegativeAmounts(int? minorUnits)
     {
-        var exception = Assert.Throws<InvalidPaymentException>(() => new Amount(minorUnits));
+        // Act
+        var exception = Assert.Throws<InvalidPaymentException>(() => new Amount(minorUnits, "GBP"));
 
+        // Assert
         Assert.Equal("amount", exception.Field);
+    }
+
+    [Fact]
+    public void ReportsTheCurrencyFirstWhenCurrencyAndAmountAreInvalid()
+    {
+        // Act
+        var exception = Assert.Throws<InvalidPaymentException>(() => new Amount(0, "JPY"));
+
+        // Assert
+        Assert.Equal("currency", exception.Field);
     }
 }

@@ -13,8 +13,10 @@ public class CardExpiryTests
     [InlineData(12, 2027)]
     public void AcceptsExpiriesFromTheCurrentMonthOnwards(int month, int year)
     {
+        // Act
         var expiry = new CardExpiry(month, year, Today);
 
+        // Assert
         Assert.Equal(month, expiry.Month);
         Assert.Equal(year, expiry.Year);
     }
@@ -24,8 +26,10 @@ public class CardExpiryTests
     [InlineData(12, 2025)]
     public void RejectsExpiriesInThePastOnTheYearField(int month, int year)
     {
+        // Act
         var exception = Assert.Throws<InvalidPaymentException>(() => new CardExpiry(month, year, Today));
 
+        // Assert
         Assert.Equal("expiryYear", exception.Field);
     }
 
@@ -35,24 +39,30 @@ public class CardExpiryTests
     [InlineData(13)]
     public void RejectsMissingOrOutOfRangeMonths(int? month)
     {
+        // Act
         var exception = Assert.Throws<InvalidPaymentException>(() => new CardExpiry(month, 2027, Today));
 
+        // Assert
         Assert.Equal("expiryMonth", exception.Field);
     }
 
     [Fact]
     public void RejectsMissingYear()
     {
+        // Act
         var exception = Assert.Throws<InvalidPaymentException>(() => new CardExpiry(12, null, Today));
 
+        // Assert
         Assert.Equal("expiryYear", exception.Field);
     }
 
     [Fact]
     public void ReportsTheMonthFirstWhenMonthAndYearAreMissing()
     {
+        // Act
         var exception = Assert.Throws<InvalidPaymentException>(() => new CardExpiry(null, null, Today));
 
+        // Assert
         Assert.Equal("expiryMonth", exception.Field);
     }
 }
