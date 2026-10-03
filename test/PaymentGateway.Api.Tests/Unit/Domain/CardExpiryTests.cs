@@ -34,33 +34,12 @@ public class CardExpiryTests
     }
 
     [Theory]
-    [InlineData(null)]
     [InlineData(0)]
     [InlineData(13)]
-    public void RejectsMissingOrOutOfRangeMonths(int? month)
+    public void RejectsOutOfRangeMonths(int month)
     {
         // Act
         var exception = Assert.Throws<InvalidPaymentException>(() => new CardExpiry(month, 2027, Today));
-
-        // Assert
-        Assert.Equal("expiryMonth", exception.Field);
-    }
-
-    [Fact]
-    public void RejectsMissingYear()
-    {
-        // Act
-        var exception = Assert.Throws<InvalidPaymentException>(() => new CardExpiry(12, null, Today));
-
-        // Assert
-        Assert.Equal("expiryYear", exception.Field);
-    }
-
-    [Fact]
-    public void ReportsTheMonthFirstWhenMonthAndYearAreMissing()
-    {
-        // Act
-        var exception = Assert.Throws<InvalidPaymentException>(() => new CardExpiry(null, null, Today));
 
         // Assert
         Assert.Equal("expiryMonth", exception.Field);

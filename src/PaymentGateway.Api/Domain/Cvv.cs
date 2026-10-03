@@ -2,9 +2,9 @@ namespace PaymentGateway.Api.Domain;
 
 public sealed record Cvv
 {
-    public Cvv(string? value)
+    public Cvv(string value)
     {
-        if (value is not { Length: 3 or 4 } || !value.All(char.IsAsciiDigit))
+        if (value.Length is not (3 or 4) || !value.All(char.IsAsciiDigit))
         {
             throw new InvalidPaymentException("cvv", "CVV must contain 3 or 4 digits.");
         }

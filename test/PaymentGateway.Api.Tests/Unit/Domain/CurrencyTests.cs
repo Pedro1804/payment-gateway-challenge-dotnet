@@ -18,12 +18,11 @@ public class CurrencyTests
     }
 
     [Theory]
-    [InlineData(null)]
     [InlineData("")]
     [InlineData("eur")]
     [InlineData("JPY")]
     [InlineData("EURO")]
-    public void RejectsMissingUnsupportedOrMiscasedCurrencies(string? code)
+    public void RejectsUnsupportedOrMiscasedCurrencies(string code)
     {
         // Act
         var exception = Assert.Throws<InvalidPaymentException>(() => new Currency(code));

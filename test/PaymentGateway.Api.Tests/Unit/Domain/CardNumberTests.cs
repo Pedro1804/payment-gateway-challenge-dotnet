@@ -17,14 +17,13 @@ public class CardNumberTests
     }
 
     [Theory]
-    [InlineData(null)]
     [InlineData("")]
     [InlineData("1234567890123")]
     [InlineData("12345678901234567890")]
     [InlineData("1234abcd567890")]
     [InlineData("1234 5678 9012 34")]
     [InlineData("١٢٣٤٥٦٧٨٩٠١٢٣٤")]
-    public void RejectsMissingOrMalformedCardNumbers(string? digits)
+    public void RejectsMalformedCardNumbers(string digits)
     {
         // Act
         var exception = Assert.Throws<InvalidPaymentException>(() => new CardNumber(digits));

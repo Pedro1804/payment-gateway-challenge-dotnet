@@ -18,13 +18,12 @@ public class CvvTests
     }
 
     [Theory]
-    [InlineData(null)]
     [InlineData("")]
     [InlineData("12")]
     [InlineData("12345")]
     [InlineData("12a")]
     [InlineData("١٢٣")]
-    public void RejectsMissingOrMalformedCvvs(string? digits)
+    public void RejectsMalformedCvvs(string digits)
     {
         // Act
         var exception = Assert.Throws<InvalidPaymentException>(() => new Cvv(digits));

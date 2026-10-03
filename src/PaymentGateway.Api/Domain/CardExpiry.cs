@@ -2,16 +2,11 @@ namespace PaymentGateway.Api.Domain;
 
 public sealed record CardExpiry
 {
-    public CardExpiry(int? month, int? year, DateOnly today)
+    public CardExpiry(int month, int year, DateOnly today)
     {
         if (month is not (>= 1 and <= 12))
         {
             throw new InvalidPaymentException("expiryMonth", "Expiry month must be between 1 and 12.");
-        }
-
-        if (year is null)
-        {
-            throw new InvalidPaymentException("expiryYear", "Expiry year is required.");
         }
 
         if (year < today.Year || (year == today.Year && month < today.Month))
@@ -19,8 +14,8 @@ public sealed record CardExpiry
             throw new InvalidPaymentException("expiryYear", "Card expiry date must not be in the past.");
         }
 
-        Month = month.Value;
-        Year = year.Value;
+        Month = month;
+        Year = year;
     }
 
     public int Month { get; }

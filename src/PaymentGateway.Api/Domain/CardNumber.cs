@@ -2,9 +2,9 @@ namespace PaymentGateway.Api.Domain;
 
 public sealed record CardNumber
 {
-    public CardNumber(string? value)
+    public CardNumber(string value)
     {
-        if (value is not { Length: >= 14 and <= 19 } || !value.All(char.IsAsciiDigit))
+        if (value.Length is not (>= 14 and <= 19) || !value.All(char.IsAsciiDigit))
         {
             throw new InvalidPaymentException("cardNumber", "Card number must contain between 14 and 19 digits.");
         }

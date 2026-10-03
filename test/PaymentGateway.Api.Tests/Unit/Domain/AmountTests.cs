@@ -19,10 +19,9 @@ public class AmountTests
     }
 
     [Theory]
-    [InlineData(null)]
     [InlineData(0)]
     [InlineData(-1)]
-    public void RejectsMissingZeroOrNegativeAmounts(int? minorUnits)
+    public void RejectsZeroOrNegativeAmounts(int minorUnits)
     {
         // Act
         var exception = Assert.Throws<InvalidPaymentException>(() => new Amount(minorUnits, "GBP"));

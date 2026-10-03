@@ -1,5 +1,4 @@
 using PaymentGateway.Api.Domain;
-using PaymentGateway.Api.Models.Requests;
 using PaymentGateway.Api.Services;
 
 namespace PaymentGateway.Api.Tests.Unit.Services;
@@ -40,19 +39,6 @@ public class PostPaymentRequestMapperTests
     }
 
     [Fact]
-    public void RejectsAnEmptyRequestOnTheCardNumber()
-    {
-        // Arrange
-        var request = new PostPaymentRequest();
-
-        // Act
-        var exception = Assert.Throws<InvalidPaymentException>(() => request.ToCardPayment(PaymentRequests.Today));
-
-        // Assert
-        Assert.Equal("cardNumber", exception.Field);
-    }
-
-    [Fact]
     public void CardPaymentToStringDoesNotExposeCardNumberOrCvv()
     {
         // Arrange
@@ -63,7 +49,7 @@ public class PostPaymentRequestMapperTests
         var text = payment.ToString();
 
         // Assert
-        Assert.DoesNotContain(request.CardNumber!, text);
-        Assert.DoesNotContain(request.Cvv!, text);
+        Assert.DoesNotContain(request.CardNumber, text);
+        Assert.DoesNotContain(request.Cvv, text);
     }
 }
