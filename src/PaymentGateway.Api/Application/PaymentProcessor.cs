@@ -1,3 +1,5 @@
+using System.Diagnostics;
+
 using PaymentGateway.Api.Domain;
 using PaymentGateway.Api.Models;
 
@@ -8,11 +10,16 @@ public sealed class PaymentProcessor(IAcquiringBank bank, ILogger<PaymentProcess
     public async Task<PaymentDecision> ProcessAsync(CardPayment payment, CancellationToken cancellationToken)
     {
         var authorization = await bank.AuthorizeAsync(payment, cancellationToken);
-        var decision = new PaymentDecision(Guid.NewGuid(), ToStatus(authorization), payment, authorization.AuthorizationCode);
+        var decision = Decide(payment, authorization);
         logger.LogInformation("Payment {PaymentId} processed with status {Status}", decision.Id, decision.Status);
         return decision;
     }
 
-    private static PaymentStatus ToStatus(BankAuthorization authorization) =>
-        authorization.IsAuthorized ? PaymentStatus.Authorized : PaymentStatus.Declined;
+    private static PaymentDecision Decide(CardPayment payment, BankAuthorization authorization) => authorization switch
+    {
+        BankAuthorization.Authorized authorized =>
+            new(Guid.NewGuid(), PaymentStatus.Authorized, payment, authorized.AuthorizationCode),
+        BankAuthorization.Declined => new(Guid.NewGuid(), PaymentStatus.Declined, payment, null),
+        _ => throw new UnreachableException()
+    };
 }

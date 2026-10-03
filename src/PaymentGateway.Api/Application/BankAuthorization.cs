@@ -1,3 +1,12 @@
 namespace PaymentGateway.Api.Application;
 
-public sealed record BankAuthorization(bool IsAuthorized, string? AuthorizationCode);
+public abstract record BankAuthorization
+{
+    private BankAuthorization()
+    {
+    }
+
+    public sealed record Authorized(string AuthorizationCode) : BankAuthorization;
+
+    public sealed record Declined : BankAuthorization;
+}

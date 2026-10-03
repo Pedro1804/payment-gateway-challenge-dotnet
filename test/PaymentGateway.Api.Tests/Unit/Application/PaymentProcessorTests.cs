@@ -12,8 +12,8 @@ namespace PaymentGateway.Api.Tests.Unit.Application;
 
 public class PaymentProcessorTests
 {
-    private static readonly BankAuthorization AuthorizedByBank = new(true, "auth-code");
-    private static readonly BankAuthorization DeclinedByBank = new(false, null);
+    private static readonly BankAuthorization.Authorized AuthorizedByBank = new("auth-code");
+    private static readonly BankAuthorization.Declined DeclinedByBank = new();
 
     private readonly IAcquiringBank _bank = Substitute.For<IAcquiringBank>();
     private readonly CardPayment _cardPayment = PaymentRequests.Valid().ToCardPayment(PaymentRequests.Today);
