@@ -6,7 +6,7 @@ public sealed record Amount
     {
         Currency = new Currency(currency);
 
-        if (minorUnits <= 0)
+        if (IsNotPositive(minorUnits))
         {
             throw new InvalidPaymentException("amount", "Amount must be a positive integer in minor currency units.");
         }
@@ -17,4 +17,6 @@ public sealed record Amount
     public int MinorUnits { get; }
 
     public Currency Currency { get; }
+
+    private static bool IsNotPositive(int minorUnits) => minorUnits <= 0;
 }

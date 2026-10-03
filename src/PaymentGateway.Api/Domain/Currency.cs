@@ -6,7 +6,7 @@ public sealed record Currency
 
     public Currency(string code)
     {
-        if (!SupportedCodes.Contains(code))
+        if (IsNotSupported(code))
         {
             throw new InvalidPaymentException("currency", "Currency must be one of EUR, USD or GBP.");
         }
@@ -15,4 +15,6 @@ public sealed record Currency
     }
 
     public string Code { get; }
+
+    private static bool IsNotSupported(string code) => !SupportedCodes.Contains(code);
 }
