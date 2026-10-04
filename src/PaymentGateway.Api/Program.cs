@@ -1,3 +1,5 @@
+using PaymentGateway.Api.Domain.Ports;
+using PaymentGateway.Api.Infrastructure.Bank;
 using PaymentGateway.Api.Infrastructure.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -10,6 +12,8 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 builder.Services.AddSingleton<PaymentsRepository>();
+builder.Services.AddHttpClient<IAcquiringBank, AcquiringBankClient>(client =>
+    client.BaseAddress = new Uri(builder.Configuration["Bank:BaseUrl"]!));
 
 var app = builder.Build();
 
