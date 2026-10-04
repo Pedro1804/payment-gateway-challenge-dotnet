@@ -12,7 +12,7 @@ namespace PaymentGateway.Api.Tests.Unit.Domain.Services;
 
 public class PaymentProcessorTests
 {
-    private static readonly BankAuthorization.Authorized AuthorizedByBank = new("auth-code");
+    private static readonly BankAuthorization.Authorized AuthorizedByBank = new();
     private static readonly BankAuthorization.Declined DeclinedByBank = new();
 
     private readonly IAcquiringBank _bank = Substitute.For<IAcquiringBank>();
@@ -35,7 +35,6 @@ public class PaymentProcessorTests
 
         // Assert
         Assert.Equal(PaymentStatus.Authorized, decision.Status);
-        Assert.Equal(AuthorizedByBank.AuthorizationCode, decision.AuthorizationCode);
         Assert.Equal(_cardPayment, decision.CardPayment);
         Assert.NotEqual(Guid.Empty, decision.Id);
     }
@@ -51,7 +50,6 @@ public class PaymentProcessorTests
 
         // Assert
         Assert.Equal(PaymentStatus.Declined, decision.Status);
-        Assert.Null(decision.AuthorizationCode);
         Assert.Equal(_cardPayment, decision.CardPayment);
     }
 

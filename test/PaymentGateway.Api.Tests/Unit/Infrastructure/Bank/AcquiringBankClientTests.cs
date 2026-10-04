@@ -11,10 +11,8 @@ namespace PaymentGateway.Api.Tests.Unit.Infrastructure.Bank;
 
 public class AcquiringBankClientTests
 {
-    private const string AuthorizationCode = "0bb07405-6d44-4b50-a14f-7ae0beff13ad";
-
     private const string AuthorizedAnswer =
-        $$"""{ "authorized": true, "authorization_code": "{{AuthorizationCode}}" }""";
+        """{ "authorized": true, "authorization_code": "0bb07405-6d44-4b50-a14f-7ae0beff13ad" }""";
 
     private const string DeclinedAnswer = """{ "authorized": false, "authorization_code": "" }""";
 
@@ -70,7 +68,7 @@ public class AcquiringBankClientTests
     }
 
     [Fact]
-    public async Task ReturnsTheAuthorizationCodeWhenTheBankAuthorizes()
+    public async Task ReturnsAuthorizedWhenTheBankAuthorizes()
     {
         // Arrange
         _bank.Answers(HttpStatusCode.OK, AuthorizedAnswer);
@@ -80,7 +78,7 @@ public class AcquiringBankClientTests
             PaymentRequests.Valid().ToCardPayment(PaymentRequests.Today), CancellationToken.None);
 
         // Assert
-        Assert.Equal(new BankAuthorization.Authorized(AuthorizationCode), authorization);
+        Assert.IsType<BankAuthorization.Authorized>(authorization);
     }
 
     [Fact]

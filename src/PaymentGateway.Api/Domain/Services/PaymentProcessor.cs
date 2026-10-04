@@ -17,9 +17,8 @@ public sealed class PaymentProcessor(IAcquiringBank bank, ILogger<PaymentProcess
 
     private static PaymentDecision Decide(CardPayment payment, BankAuthorization authorization) => authorization switch
     {
-        BankAuthorization.Authorized authorized =>
-            new(Guid.NewGuid(), PaymentStatus.Authorized, payment, authorized.AuthorizationCode),
-        BankAuthorization.Declined => new(Guid.NewGuid(), PaymentStatus.Declined, payment, null),
+        BankAuthorization.Authorized => new(Guid.NewGuid(), PaymentStatus.Authorized, payment),
+        BankAuthorization.Declined => new(Guid.NewGuid(), PaymentStatus.Declined, payment),
         _ => throw new UnreachableException()
     };
 }
