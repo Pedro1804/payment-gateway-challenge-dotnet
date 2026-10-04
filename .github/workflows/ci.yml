@@ -16,6 +16,9 @@ jobs:
         with:
           dotnet-version: 8.0.x
 
+      - name: Restore tools
+        run: dotnet tool restore
+
       - name: Restore
         run: dotnet restore
 
@@ -23,4 +26,9 @@ jobs:
         run: dotnet build --no-restore --configuration Release
 
       - name: Test
-        run: dotnet test --no-build --configuration Release --verbosity normal
+        run: dotnet test --no-build --configuration Release --verbosity normal --settings coverage.runsettings --results-directory TestResults
+
+      - name: Coverage summary
+        run: |
+          dotnet reportgenerator -reports:"TestResults/**/coverage.cobertura.xml" -targetdir:coverage-report -reporttypes:MarkdownSummaryGithub
+          cat coverage-report/SummaryGithub.md >> "$GITHUB_STEP_SUMMARY"
