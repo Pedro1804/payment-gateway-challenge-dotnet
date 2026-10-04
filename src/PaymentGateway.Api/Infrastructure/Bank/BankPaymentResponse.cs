@@ -4,11 +4,9 @@ using PaymentGateway.Api.Domain.Ports;
 
 namespace PaymentGateway.Api.Infrastructure.Bank;
 
-internal sealed record BankPaymentResponse(
-    [property: JsonPropertyName("authorized")] bool Authorized,
-    [property: JsonPropertyName("authorization_code")] string? AuthorizationCode)
+internal sealed record BankPaymentResponse([property: JsonPropertyName("authorized")] bool Authorized)
 {
     public BankAuthorization ToBankAuthorization() => Authorized
-        ? new BankAuthorization.Authorized(AuthorizationCode!)
+        ? new BankAuthorization.Authorized()
         : new BankAuthorization.Declined();
 }

@@ -6,7 +6,7 @@ public abstract record BankAuthorization
     {
     }
 
-    public sealed record Authorized(string AuthorizationCode) : BankAuthorization;
+    public sealed record Authorized : BankAuthorization;
 
     public sealed record Declined : BankAuthorization;
 }

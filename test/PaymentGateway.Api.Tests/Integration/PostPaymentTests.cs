@@ -46,7 +46,7 @@ public abstract class PostPaymentTests : IDisposable
         public async Task AsAuthorizedWhenTheBankAuthorizesIt()
         {
             // Arrange
-            BankAnswers(new BankAuthorization.Authorized("auth-code"));
+            BankAnswers(new BankAuthorization.Authorized());
 
             // Act
             var response = await PostAsync(ValidBody());
@@ -82,7 +82,7 @@ public abstract class PostPaymentTests : IDisposable
         public async Task WithoutExposingTheFullCardNumberNorTheCvv()
         {
             // Arrange
-            BankAnswers(new BankAuthorization.Authorized("auth-code"));
+            BankAnswers(new BankAuthorization.Authorized());
 
             // Act
             var response = await PostAsync(ValidBody());
