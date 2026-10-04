@@ -24,12 +24,12 @@ public sealed class AcquiringBankClient(HttpClient httpClient, ILogger<Acquiring
         }
         catch (HttpRequestException exception)
         {
-            logger.LogWarning("Acquiring bank is unreachable: {ErrorType}", exception.GetType().Name);
+            logger.LogError("Acquiring bank is unreachable: {ErrorType}", exception.GetType().Name);
             throw new AcquiringBankUnavailableException("Acquiring bank is unreachable.", exception);
         }
         catch (TaskCanceledException exception) when (!cancellationToken.IsCancellationRequested)
         {
-            logger.LogWarning("Acquiring bank did not answer in time");
+            logger.LogError("Acquiring bank did not answer in time");
             throw new AcquiringBankUnavailableException("Acquiring bank did not answer in time.", exception);
         }
     }
@@ -41,7 +41,7 @@ public sealed class AcquiringBankClient(HttpClient httpClient, ILogger<Acquiring
             return;
         }
 
-        logger.LogWarning("Acquiring bank answered with status {StatusCode}", (int)response.StatusCode);
+        logger.LogError("Acquiring bank answered with status {StatusCode}", (int)response.StatusCode);
         throw new AcquiringBankUnavailableException(
             $"Acquiring bank answered with status {(int)response.StatusCode}.");
     }
