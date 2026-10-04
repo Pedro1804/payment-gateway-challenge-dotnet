@@ -3,7 +3,7 @@ using PaymentGateway.Api.Api.Requests;
 
 namespace PaymentGateway.Api.Api;
 
-public static class PostPaymentRequestMapper
+public static class PaymentRequestMapper
 {
     public static CardPayment ToCardPayment(this PostPaymentRequest request, DateOnly today) =>
         new(
