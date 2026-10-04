@@ -15,16 +15,15 @@ using PaymentGateway.Api.Domain.Ports;
 
 namespace PaymentGateway.Api.Tests.Integration;
 
-public sealed class PostPaymentTests : IDisposable
+public abstract class PostPaymentTests : IDisposable
 {
     private const string PaymentsPath = "/api/Payments";
-    private const string FullCardNumber = "2222405343248877";
 
     private readonly IAcquiringBank _bank = Substitute.For<IAcquiringBank>();
     private readonly WebApplicationFactory<Program> _factory;
     private readonly HttpClient _client;
 
-    public PostPaymentTests()
+    protected PostPaymentTests()
     {
         _factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
             builder.ConfigureTestServices(services => services
@@ -39,142 +38,165 @@ public sealed class PostPaymentTests : IDisposable
         _factory.Dispose();
     }
 
-    [Fact]
-    public async Task CreatesAnAuthorizedPaymentWhenTheBankAuthorizesIt()
+    public sealed class Processed : PostPaymentTests
     {
-        // Arrange
-        BankAnswers(new BankAuthorization.Authorized("auth-code"));
+        private const string FullCardNumber = "2222405343248877";
 
-        // Act
-        var response = await _client.PostAsJsonAsync(PaymentsPath, ValidBody());
+        [Fact]
+        public async Task AsAuthorizedWhenTheBankAuthorizesIt()
+        {
+            // Arrange
+            BankAnswers(new BankAuthorization.Authorized("auth-code"));
 
-        // Assert
-        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
-        var payment = await response.Content.ReadFromJsonAsync<JsonElement>();
-        Assert.Equal("Authorized", payment.GetProperty("status").GetString());
-        Assert.Equal("8877", payment.GetProperty("cardNumberLastFour").GetString());
-        Assert.Equal(4, payment.GetProperty("expiryMonth").GetInt32());
-        Assert.Equal(2027, payment.GetProperty("expiryYear").GetInt32());
-        Assert.Equal("GBP", payment.GetProperty("currency").GetString());
-        Assert.Equal(1050, payment.GetProperty("amount").GetInt32());
-        Assert.Equal($"{PaymentsPath}/{payment.GetProperty("id").GetGuid()}", response.Headers.Location?.AbsolutePath);
+            // Act
+            var response = await PostAsync(ValidBody());
+
+            // Assert
+            Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+            var payment = await response.Content.ReadFromJsonAsync<JsonElement>();
+            Assert.Equal("Authorized", payment.GetProperty("status").GetString());
+            Assert.Equal("8877", payment.GetProperty("cardNumberLastFour").GetString());
+            Assert.Equal(4, payment.GetProperty("expiryMonth").GetInt32());
+            Assert.Equal(2027, payment.GetProperty("expiryYear").GetInt32());
+            Assert.Equal("GBP", payment.GetProperty("currency").GetString());
+            Assert.Equal(1050, payment.GetProperty("amount").GetInt32());
+            Assert.Equal($"{PaymentsPath}/{payment.GetProperty("id").GetGuid()}", response.Headers.Location?.AbsolutePath);
+        }
+
+        [Fact]
+        public async Task AsDeclinedWhenTheBankDeclinesIt()
+        {
+            // Arrange
+            BankAnswers(new BankAuthorization.Declined());
+
+            // Act
+            var response = await PostAsync(ValidBody());
+
+            // Assert
+            Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+            var payment = await response.Content.ReadFromJsonAsync<JsonElement>();
+            Assert.Equal("Declined", payment.GetProperty("status").GetString());
+        }
+
+        [Fact]
+        public async Task WithoutExposingTheFullCardNumberNorTheCvv()
+        {
+            // Arrange
+            BankAnswers(new BankAuthorization.Authorized("auth-code"));
+
+            // Act
+            var response = await PostAsync(ValidBody());
+
+            // Assert
+            var body = await response.Content.ReadAsStringAsync();
+            Assert.Contains("8877", body);
+            Assert.DoesNotContain(FullCardNumber, body);
+            Assert.DoesNotContain("cvv", body, StringComparison.OrdinalIgnoreCase);
+        }
     }
 
-    [Fact]
-    public async Task CreatesADeclinedPaymentWhenTheBankDeclinesIt()
+    public sealed class RejectedWithoutCallingTheBank : PostPaymentTests
     {
-        // Arrange
-        BankAnswers(new BankAuthorization.Declined());
+        [Fact]
+        public async Task ReportingOnlyTheFirstInvalidField()
+        {
+            // Arrange
+            var body = ValidBody();
+            body["cardNumber"] = "1234";
+            body["currency"] = "JPY";
 
-        // Act
-        var response = await _client.PostAsJsonAsync(PaymentsPath, ValidBody());
+            // Act
+            var response = await PostAsync(body);
 
-        // Assert
-        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
-        var payment = await response.Content.ReadFromJsonAsync<JsonElement>();
-        Assert.Equal("Declined", payment.GetProperty("status").GetString());
+            // Assert
+            var problem = await AssertRejectedAsync(response);
+            var invalidFields = problem.GetProperty("errors").EnumerateObject().Select(error => error.Name);
+            Assert.Equal(["cardNumber"], invalidFields);
+            await AssertBankNotCalledAsync();
+        }
+
+        [Theory]
+        [InlineData("cvv")]
+        [InlineData("amount")]
+        public async Task WhenAFieldIsMissing(string field)
+        {
+            // Arrange
+            var body = ValidBody();
+            body.Remove(field);
+
+            // Act
+            var response = await PostAsync(body);
+
+            // Assert
+            await AssertRejectedAsync(response);
+            await AssertBankNotCalledAsync();
+        }
+
+        [Theory]
+        [InlineData("cvv")]
+        [InlineData("cardNumber")]
+        [InlineData("amount")]
+        public async Task WhenAFieldIsNull(string field)
+        {
+            // Arrange
+            var body = ValidBody();
+            body[field] = null;
+
+            // Act
+            var response = await PostAsync(body);
+
+            // Assert
+            await AssertRejectedAsync(response);
+            await AssertBankNotCalledAsync();
+        }
+
+        [Theory]
+        [InlineData("amount", "10.5")]
+        [InlineData("expiryMonth", "\"april\"")]
+        [InlineData("cvv", "123")]
+        public async Task WhenAFieldHasTheWrongType(string field, string json)
+        {
+            // Arrange
+            var body = ValidBody();
+            body[field] = JsonNode.Parse(json);
+
+            // Act
+            var response = await PostAsync(body);
+
+            // Assert
+            await AssertRejectedAsync(response);
+            await AssertBankNotCalledAsync();
+        }
+
+        private static async Task<JsonElement> AssertRejectedAsync(HttpResponseMessage response)
+        {
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            var problem = await response.Content.ReadFromJsonAsync<JsonElement>();
+            Assert.Equal("Rejected", problem.GetProperty("paymentStatus").GetString());
+            return problem;
+        }
+
+        private Task AssertBankNotCalledAsync() =>
+            _bank.DidNotReceiveWithAnyArgs().AuthorizeAsync(default!, default);
     }
 
-    [Fact]
-    public async Task NeverExposesTheFullCardNumberNorTheCvv()
+    public sealed class BankUnavailable : PostPaymentTests
     {
-        // Arrange
-        BankAnswers(new BankAuthorization.Authorized("auth-code"));
+        [Fact]
+        public async Task AnswersBadGateway()
+        {
+            // Arrange
+            _bank.AuthorizeAsync(Arg.Any<CardPayment>(), Arg.Any<CancellationToken>())
+                .ThrowsAsync(new AcquiringBankUnavailableException("Bank answered 503"));
 
-        // Act
-        var response = await _client.PostAsJsonAsync(PaymentsPath, ValidBody());
+            // Act
+            var response = await PostAsync(ValidBody());
 
-        // Assert
-        var body = await response.Content.ReadAsStringAsync();
-        Assert.Contains("8877", body);
-        Assert.DoesNotContain(FullCardNumber, body);
-        Assert.DoesNotContain("cvv", body, StringComparison.OrdinalIgnoreCase);
-    }
-
-    [Fact]
-    public async Task RejectsAnInvalidPaymentWithTheFirstInvalidFieldOnlyWithoutCallingTheBank()
-    {
-        // Arrange
-        var body = ValidBody();
-        body["cardNumber"] = "1234";
-        body["currency"] = "JPY";
-
-        // Act
-        var response = await _client.PostAsJsonAsync(PaymentsPath, body);
-
-        // Assert
-        var problem = await AssertRejectedAsync(response);
-        var invalidFields = problem.GetProperty("errors").EnumerateObject().Select(error => error.Name);
-        Assert.Equal(["cardNumber"], invalidFields);
-        await AssertBankNotCalledAsync();
-    }
-
-    [Theory]
-    [InlineData("cvv")]
-    [InlineData("amount")]
-    public async Task RejectsAPaymentWithAMissingFieldWithoutCallingTheBank(string field)
-    {
-        // Arrange
-        var body = ValidBody();
-        body.Remove(field);
-
-        // Act
-        var response = await _client.PostAsJsonAsync(PaymentsPath, body);
-
-        // Assert
-        await AssertRejectedAsync(response);
-        await AssertBankNotCalledAsync();
-    }
-
-    [Theory]
-    [InlineData("cvv")]
-    [InlineData("cardNumber")]
-    public async Task RejectsAPaymentWithANullFieldWithoutCallingTheBank(string field)
-    {
-        // Arrange
-        var body = ValidBody();
-        body[field] = null;
-
-        // Act
-        var response = await _client.PostAsJsonAsync(PaymentsPath, body);
-
-        // Assert
-        await AssertRejectedAsync(response);
-        await AssertBankNotCalledAsync();
-    }
-
-    [Theory]
-    [InlineData("amount", "10.5")]
-    [InlineData("expiryMonth", "\"april\"")]
-    [InlineData("cvv", "123")]
-    public async Task RejectsAPaymentWithAFieldOfTheWrongTypeWithoutCallingTheBank(string field, string json)
-    {
-        // Arrange
-        var body = ValidBody();
-        body[field] = JsonNode.Parse(json);
-
-        // Act
-        var response = await _client.PostAsJsonAsync(PaymentsPath, body);
-
-        // Assert
-        await AssertRejectedAsync(response);
-        await AssertBankNotCalledAsync();
-    }
-
-    [Fact]
-    public async Task AnswersBadGatewayWhenTheBankIsUnavailable()
-    {
-        // Arrange
-        _bank.AuthorizeAsync(Arg.Any<CardPayment>(), Arg.Any<CancellationToken>())
-            .ThrowsAsync(new AcquiringBankUnavailableException("Bank answered 503"));
-
-        // Act
-        var response = await _client.PostAsJsonAsync(PaymentsPath, ValidBody());
-
-        // Assert
-        Assert.Equal(HttpStatusCode.BadGateway, response.StatusCode);
-        var problem = await response.Content.ReadFromJsonAsync<JsonElement>();
-        Assert.Equal("Acquiring bank unavailable", problem.GetProperty("title").GetString());
+            // Assert
+            Assert.Equal(HttpStatusCode.BadGateway, response.StatusCode);
+            var problem = await response.Content.ReadFromJsonAsync<JsonElement>();
+            Assert.Equal("Acquiring bank unavailable", problem.GetProperty("title").GetString());
+        }
     }
 
     private static JsonObject ValidBody() =>
@@ -184,14 +206,5 @@ public sealed class PostPaymentTests : IDisposable
     private void BankAnswers(BankAuthorization authorization) =>
         _bank.AuthorizeAsync(Arg.Any<CardPayment>(), Arg.Any<CancellationToken>()).Returns(authorization);
 
-    private static async Task<JsonElement> AssertRejectedAsync(HttpResponseMessage response)
-    {
-        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-        var problem = await response.Content.ReadFromJsonAsync<JsonElement>();
-        Assert.Equal("Rejected", problem.GetProperty("paymentStatus").GetString());
-        return problem;
-    }
-
-    private Task AssertBankNotCalledAsync() =>
-        _bank.DidNotReceiveWithAnyArgs().AuthorizeAsync(default!, default);
+    private Task<HttpResponseMessage> PostAsync(JsonObject body) => _client.PostAsJsonAsync(PaymentsPath, body);
 }
