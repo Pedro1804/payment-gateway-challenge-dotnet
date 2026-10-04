@@ -7,12 +7,11 @@ namespace PaymentGateway.Api.Domain.Services;
 
 public sealed class PaymentProcessor(IAcquiringBank bank, IPaymentsRepository payments, ILogger<PaymentProcessor> logger)
 {
-    private readonly IPaymentsRepository _payments = payments;
-
     public async Task<PaymentDecision> ProcessAsync(CardPayment payment, CancellationToken cancellationToken)
     {
         var authorization = await bank.AuthorizeAsync(payment, cancellationToken);
         var decision = Decide(payment, authorization);
+        payments.Add(decision);
         logger.LogInformation("Payment {PaymentId} processed with status {Status}", decision.Id, decision.Status);
         return decision;
     }
