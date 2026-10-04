@@ -1,18 +1,11 @@
-﻿using PaymentGateway.Api.Api.Responses;
+using PaymentGateway.Api.Domain.Model;
+using PaymentGateway.Api.Domain.Ports;
 
 namespace PaymentGateway.Api.Infrastructure.Persistence;
 
-public class PaymentsRepository
+public sealed class PaymentsRepository : IPaymentsRepository
 {
-    public List<PostPaymentResponse> Payments = new();
-    
-    public void Add(PostPaymentResponse payment)
-    {
-        Payments.Add(payment);
-    }
+    public void Add(PaymentDecision decision) => throw new NotImplementedException();
 
-    public PostPaymentResponse? Get(Guid id)
-    {
-        return Payments.FirstOrDefault(p => p.Id == id);
-    }
+    public Payment? Get(Guid id) => throw new NotImplementedException();
 }

@@ -1,0 +1,36 @@
+using PaymentGateway.Api.Api;
+using PaymentGateway.Api.Domain.Model;
+using PaymentGateway.Api.Infrastructure.Persistence;
+
+namespace PaymentGateway.Api.Tests.Unit.Infrastructure.Persistence;
+
+public class PaymentsRepositoryTests
+{
+    private readonly PaymentsRepository _repository = new();
+
+    [Fact]
+    public void ReturnsTheRecordedPaymentWithoutSensitiveCardData()
+    {
+        // Arrange
+        var cardPayment = PaymentRequests.Valid().ToCardPayment(PaymentRequests.Today);
+        var decision = new PaymentDecision(Guid.NewGuid(), PaymentStatus.Declined, cardPayment);
+        _repository.Add(decision);
+
+        // Act
+        var payment = _repository.Get(decision.Id);
+
+        // Assert
+        var expected = new Payment(decision.Id, PaymentStatus.Declined, "8877", cardPayment.Expiry, cardPayment.Amount);
+        Assert.Equal(expected, payment);
+    }
+
+    [Fact]
+    public void ReturnsNullForAnUnknownPayment()
+    {
+        // Act
+        var payment = _repository.Get(Guid.NewGuid());
+
+        // Assert
+        Assert.Null(payment);
+    }
+}

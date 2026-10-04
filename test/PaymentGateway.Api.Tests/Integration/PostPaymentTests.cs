@@ -20,6 +20,7 @@ public abstract class PostPaymentTests : IDisposable
     private const string PaymentsPath = "/api/payments";
 
     private readonly IAcquiringBank _bank = Substitute.For<IAcquiringBank>();
+    private readonly IPaymentsRepository _payments = Substitute.For<IPaymentsRepository>();
     private readonly WebApplicationFactory<Program> _factory;
     private readonly HttpClient _client;
 
@@ -28,6 +29,7 @@ public abstract class PostPaymentTests : IDisposable
         _factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
             builder.ConfigureTestServices(services => services
                 .AddSingleton(_bank)
+                .AddSingleton(_payments)
                 .AddSingleton<TimeProvider>(new FixedTimeProvider(PaymentRequests.Today))));
         _client = _factory.CreateClient();
     }
@@ -166,6 +168,20 @@ public abstract class PostPaymentTests : IDisposable
             // Assert
             await AssertRejectedAsync(response);
             await AssertBankNotCalledAsync();
+        }
+
+        [Fact]
+        public async Task NorRecordingThePayment()
+        {
+            // Arrange
+            var body = ValidBody();
+            body["cvv"] = "12";
+
+            // Act
+            await PostAsync(body);
+
+            // Assert
+            _payments.DidNotReceiveWithAnyArgs().Add(default!);
         }
 
         private static async Task<JsonElement> AssertRejectedAsync(HttpResponseMessage response)
