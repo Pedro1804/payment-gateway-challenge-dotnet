@@ -44,4 +44,15 @@ public class CardExpiryTests
         // Assert
         Assert.Equal("expiryMonth", exception.Field);
     }
+
+    [Fact]
+    public void RestoresARecordedExpiryEvenOnceItHasPassed()
+    {
+        // Act
+        var expiry = CardExpiry.Restore(9, 2026);
+
+        // Assert
+        Assert.Equal(9, expiry.Month);
+        Assert.Equal(2026, expiry.Year);
+    }
 }

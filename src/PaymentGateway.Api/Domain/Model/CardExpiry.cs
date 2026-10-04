@@ -22,6 +22,8 @@ public sealed record CardExpiry
 
     public int Year { get; }
 
+    public static CardExpiry Restore(int month, int year) => throw new NotImplementedException();
+
     private static bool IsNotAValidMonth(int month) => month is < 1 or > 12;
 
     private static bool IsBeforeCurrentMonth(int month, int year, DateOnly today) =>
