@@ -15,13 +15,13 @@ public class PaymentProcessorTests
     private static readonly BankAuthorization.Declined DeclinedByBank = new();
 
     private readonly IAcquiringBank _bank = Substitute.For<IAcquiringBank>();
-    private readonly IPaymentsRepository _payments = Substitute.For<IPaymentsRepository>();
+    private readonly IPaymentsRepository _paymentsRepository = Substitute.For<IPaymentsRepository>();
     private readonly CardPayment _cardPayment = PaymentRequests.ValidCardPayment();
     private readonly PaymentProcessor _processor;
 
     public PaymentProcessorTests()
     {
-        _processor = new PaymentProcessor(_bank, _payments, NullLogger<PaymentProcessor>.Instance);
+        _processor = new PaymentProcessor(_bank, _paymentsRepository, NullLogger<PaymentProcessor>.Instance);
     }
 
     [Fact]
@@ -103,7 +103,7 @@ public class PaymentProcessorTests
         var decision = await _processor.ProcessAsync(_cardPayment, CancellationToken.None);
 
         // Assert
-        _payments.Received(1).Add(decision);
+        _paymentsRepository.Received(1).Add(decision);
     }
 
     [Fact]
@@ -118,7 +118,7 @@ public class PaymentProcessorTests
             () => _processor.ProcessAsync(_cardPayment, CancellationToken.None));
 
         // Assert
-        _payments.DidNotReceiveWithAnyArgs().Add(default!);
+        _paymentsRepository.DidNotReceiveWithAnyArgs().Add(default!);
     }
 
     public static TheoryData<BankAuthorization> BankAuthorizations => new() { AuthorizedByBank, DeclinedByBank };

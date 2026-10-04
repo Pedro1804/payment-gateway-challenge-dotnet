@@ -10,26 +10,35 @@ using PaymentGateway.Api.Infrastructure.Persistence;
 
 namespace PaymentGateway.Api.Tests;
 
-public class PaymentsControllerTests
+public class PaymentsControllerTests : IDisposable
 {
+    private readonly PaymentsRepository _paymentsRepository = new();
+    private readonly WebApplicationFactory<PaymentsController> _factory;
+    private readonly HttpClient _client;
+
+    public PaymentsControllerTests()
+    {
+        _factory = new WebApplicationFactory<PaymentsController>().WithWebHostBuilder(builder =>
+            builder.ConfigureServices(services => services
+                .AddSingleton<IPaymentsRepository>(_paymentsRepository)));
+        _client = _factory.CreateClient();
+    }
+
+    public void Dispose()
+    {
+        _client.Dispose();
+        _factory.Dispose();
+    }
+
     [Fact]
     public async Task RetrievesAPaymentSuccessfully()
     {
         // Arrange
-        var cardPayment = PaymentRequests.ValidCardPayment();
-        var decision = new PaymentDecision(Guid.NewGuid(), PaymentStatus.Authorized, cardPayment);
-
-        var paymentsRepository = new PaymentsRepository();
-        paymentsRepository.Add(decision);
-
-        var webApplicationFactory = new WebApplicationFactory<PaymentsController>();
-        var client = webApplicationFactory.WithWebHostBuilder(builder =>
-            builder.ConfigureServices(services => services
-                .AddSingleton<IPaymentsRepository>(paymentsRepository)))
-            .CreateClient();
+        var decision = new PaymentDecision(Guid.NewGuid(), PaymentStatus.Authorized, PaymentRequests.ValidCardPayment());
+        _paymentsRepository.Add(decision);
 
         // Act
-        var response = await client.GetAsync($"/api/payments/{decision.Id}");
+        var response = await _client.GetAsync($"/api/payments/{decision.Id}");
 
         // Assert
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -38,13 +47,9 @@ public class PaymentsControllerTests
     [Fact]
     public async Task Returns404IfPaymentNotFound()
     {
-        // Arrange
-        var webApplicationFactory = new WebApplicationFactory<PaymentsController>();
-        var client = webApplicationFactory.CreateClient();
-        
         // Act
-        var response = await client.GetAsync($"/api/payments/{Guid.NewGuid()}");
-        
+        var response = await _client.GetAsync($"/api/payments/{Guid.NewGuid()}");
+
         // Assert
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }

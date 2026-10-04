@@ -5,7 +5,7 @@ namespace PaymentGateway.Api.Tests.Unit.Infrastructure.Persistence;
 
 public class PaymentsRepositoryTests
 {
-    private readonly PaymentsRepository _repository = new();
+    private readonly PaymentsRepository _paymentsRepository = new();
 
     [Fact]
     public void ReturnsTheRecordedPaymentWithoutSensitiveCardData()
@@ -13,10 +13,10 @@ public class PaymentsRepositoryTests
         // Arrange
         var cardPayment = PaymentRequests.ValidCardPayment();
         var decision = new PaymentDecision(Guid.NewGuid(), PaymentStatus.Declined, cardPayment);
-        _repository.Add(decision);
+        _paymentsRepository.Add(decision);
 
         // Act
-        var payment = _repository.Get(decision.Id);
+        var payment = _paymentsRepository.Get(decision.Id);
 
         // Assert
         var expected = new Payment(decision.Id, PaymentStatus.Declined, "8877", cardPayment.Expiry, cardPayment.Amount);
@@ -27,7 +27,7 @@ public class PaymentsRepositoryTests
     public void ReturnsNullForAnUnknownPayment()
     {
         // Act
-        var payment = _repository.Get(Guid.NewGuid());
+        var payment = _paymentsRepository.Get(Guid.NewGuid());
 
         // Assert
         Assert.Null(payment);

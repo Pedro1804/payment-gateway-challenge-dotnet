@@ -5,13 +5,13 @@ using PaymentGateway.Api.Domain.Ports;
 
 namespace PaymentGateway.Api.Domain.Services;
 
-public sealed class PaymentProcessor(IAcquiringBank bank, IPaymentsRepository payments, ILogger<PaymentProcessor> logger)
+public sealed class PaymentProcessor(IAcquiringBank bank, IPaymentsRepository paymentsRepository, ILogger<PaymentProcessor> logger)
 {
     public async Task<PaymentDecision> ProcessAsync(CardPayment payment, CancellationToken cancellationToken)
     {
         var authorization = await bank.AuthorizeAsync(payment, cancellationToken);
         var decision = Decide(payment, authorization);
-        payments.Add(decision);
+        paymentsRepository.Add(decision);
         logger.LogInformation("Payment {PaymentId} processed with status {Status}", decision.Id, decision.Status);
         return decision;
     }
