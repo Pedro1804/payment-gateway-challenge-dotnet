@@ -3,7 +3,7 @@ using PaymentGateway.Api.Api;
 
 namespace PaymentGateway.Api.Tests.Unit.Api;
 
-public class PostPaymentRequestMapperTests
+public class PaymentRequestMapperTests
 {
     [Fact]
     public void MapsAValidRequestToACardPayment()

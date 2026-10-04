@@ -3,7 +3,6 @@ using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
 using NSubstitute.ExceptionExtensions;
 
-using PaymentGateway.Api.Api;
 using PaymentGateway.Api.Domain.Model;
 using PaymentGateway.Api.Domain.Ports;
 using PaymentGateway.Api.Domain.Services;
@@ -16,12 +15,13 @@ public class PaymentProcessorTests
     private static readonly BankAuthorization.Declined DeclinedByBank = new();
 
     private readonly IAcquiringBank _bank = Substitute.For<IAcquiringBank>();
-    private readonly CardPayment _cardPayment = PaymentRequests.Valid().ToCardPayment(PaymentRequests.Today);
+    private readonly IPaymentsRepository _paymentsRepository = Substitute.For<IPaymentsRepository>();
+    private readonly CardPayment _cardPayment = PaymentRequests.ValidCardPayment();
     private readonly PaymentProcessor _processor;
 
     public PaymentProcessorTests()
     {
-        _processor = new PaymentProcessor(_bank, NullLogger<PaymentProcessor>.Instance);
+        _processor = new PaymentProcessor(_bank, _paymentsRepository, NullLogger<PaymentProcessor>.Instance);
     }
 
     [Fact]
@@ -91,6 +91,37 @@ public class PaymentProcessorTests
         await Assert.ThrowsAsync<AcquiringBankUnavailableException>(
             () => _processor.ProcessAsync(_cardPayment, CancellationToken.None));
     }
+
+    [Theory]
+    [MemberData(nameof(BankAuthorizations))]
+    public async Task RecordsThePaymentOnceTheBankHasAnswered(BankAuthorization authorization)
+    {
+        // Arrange
+        BankAnswers(authorization);
+
+        // Act
+        var decision = await _processor.ProcessAsync(_cardPayment, CancellationToken.None);
+
+        // Assert
+        _paymentsRepository.Received(1).Add(decision);
+    }
+
+    [Fact]
+    public async Task RecordsNothingWhenTheBankIsUnavailable()
+    {
+        // Arrange
+        _bank.AuthorizeAsync(Arg.Any<CardPayment>(), Arg.Any<CancellationToken>())
+            .ThrowsAsync(new AcquiringBankUnavailableException("bank down"));
+
+        // Act
+        await Assert.ThrowsAsync<AcquiringBankUnavailableException>(
+            () => _processor.ProcessAsync(_cardPayment, CancellationToken.None));
+
+        // Assert
+        _paymentsRepository.DidNotReceiveWithAnyArgs().Add(default!);
+    }
+
+    public static TheoryData<BankAuthorization> BankAuthorizations => new() { AuthorizedByBank, DeclinedByBank };
 
     private void BankAnswers(BankAuthorization authorization) =>
         _bank.AuthorizeAsync(Arg.Any<CardPayment>(), Arg.Any<CancellationToken>()).Returns(authorization);

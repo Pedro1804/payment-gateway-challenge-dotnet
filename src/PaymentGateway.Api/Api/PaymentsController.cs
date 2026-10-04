@@ -5,14 +5,13 @@ using PaymentGateway.Api.Api.Responses;
 using PaymentGateway.Api.Domain.Model;
 using PaymentGateway.Api.Domain.Ports;
 using PaymentGateway.Api.Domain.Services;
-using PaymentGateway.Api.Infrastructure.Persistence;
 
 namespace PaymentGateway.Api.Api;
 
 [Route("api/payments")]
 [ApiController]
 public class PaymentsController(
-    PaymentsRepository paymentsRepository,
+    IPaymentsRepository paymentsRepository,
     PaymentProcessor paymentProcessor,
     TimeProvider timeProvider,
     ILogger<PaymentsController> logger) : Controller

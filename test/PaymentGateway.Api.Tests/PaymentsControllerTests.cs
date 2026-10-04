@@ -1,64 +1,55 @@
-﻿using System.Net;
-using System.Net.Http.Json;
-using System.Text.Json;
-using System.Text.Json.Serialization;
+using System.Net;
 
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 
 using PaymentGateway.Api.Api;
-using PaymentGateway.Api.Api.Responses;
+using PaymentGateway.Api.Domain.Model;
+using PaymentGateway.Api.Domain.Ports;
 using PaymentGateway.Api.Infrastructure.Persistence;
 
 namespace PaymentGateway.Api.Tests;
 
-public class PaymentsControllerTests
+public class PaymentsControllerTests : IDisposable
 {
-    private readonly Random _random = new();
-    
+    private readonly PaymentsRepository _paymentsRepository = new();
+    private readonly WebApplicationFactory<PaymentsController> _factory;
+    private readonly HttpClient _client;
+
+    public PaymentsControllerTests()
+    {
+        _factory = new WebApplicationFactory<PaymentsController>().WithWebHostBuilder(builder =>
+            builder.ConfigureServices(services => services
+                .AddSingleton<IPaymentsRepository>(_paymentsRepository)));
+        _client = _factory.CreateClient();
+    }
+
+    public void Dispose()
+    {
+        _client.Dispose();
+        _factory.Dispose();
+    }
+
     [Fact]
     public async Task RetrievesAPaymentSuccessfully()
     {
         // Arrange
-        var payment = new PostPaymentResponse
-        {
-            Id = Guid.NewGuid(),
-            ExpiryYear = _random.Next(2023, 2030),
-            ExpiryMonth = _random.Next(1, 12),
-            Amount = _random.Next(1, 10000),
-            CardNumberLastFour = _random.Next(1111, 9999).ToString(),
-            Currency = "GBP"
-        };
-
-        var paymentsRepository = new PaymentsRepository();
-        paymentsRepository.Add(payment);
-
-        var webApplicationFactory = new WebApplicationFactory<PaymentsController>();
-        var client = webApplicationFactory.WithWebHostBuilder(builder =>
-            builder.ConfigureServices(services => ((ServiceCollection)services)
-                .AddSingleton(paymentsRepository)))
-            .CreateClient();
+        var decision = new PaymentDecision(Guid.NewGuid(), PaymentStatus.Authorized, PaymentRequests.ValidCardPayment());
+        _paymentsRepository.Add(decision);
 
         // Act
-        var response = await client.GetAsync($"/api/payments/{payment.Id}");
-        var paymentResponse = await response.Content.ReadFromJsonAsync<PostPaymentResponse>(
-            new JsonSerializerOptions(JsonSerializerDefaults.Web) { Converters = { new JsonStringEnumConverter() } });
-        
+        var response = await _client.GetAsync($"/api/payments/{decision.Id}");
+
         // Assert
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.NotNull(paymentResponse);
     }
 
     [Fact]
     public async Task Returns404IfPaymentNotFound()
     {
-        // Arrange
-        var webApplicationFactory = new WebApplicationFactory<PaymentsController>();
-        var client = webApplicationFactory.CreateClient();
-        
         // Act
-        var response = await client.GetAsync($"/api/payments/{Guid.NewGuid()}");
-        
+        var response = await _client.GetAsync($"/api/payments/{Guid.NewGuid()}");
+
         // Assert
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }

@@ -3,7 +3,6 @@ using System.Text.Json.Nodes;
 
 using Microsoft.Extensions.Logging.Abstractions;
 
-using PaymentGateway.Api.Api;
 using PaymentGateway.Api.Domain.Ports;
 using PaymentGateway.Api.Infrastructure.Bank;
 
@@ -35,7 +34,7 @@ public class AcquiringBankClientTests
 
         // Act
         await _client.AuthorizeAsync(
-            PaymentRequests.Valid().ToCardPayment(PaymentRequests.Today), CancellationToken.None);
+            PaymentRequests.ValidCardPayment(), CancellationToken.None);
 
         // Assert
         Assert.Equal(HttpMethod.Post, _bank.ReceivedMethod);
@@ -59,7 +58,7 @@ public class AcquiringBankClientTests
 
         // Act
         await _client.AuthorizeAsync(
-            PaymentRequests.Valid().ToCardPayment(PaymentRequests.Today), CancellationToken.None);
+            PaymentRequests.ValidCardPayment(), CancellationToken.None);
 
         // Assert
         Assert.True(
@@ -75,7 +74,7 @@ public class AcquiringBankClientTests
 
         // Act
         var authorization = await _client.AuthorizeAsync(
-            PaymentRequests.Valid().ToCardPayment(PaymentRequests.Today), CancellationToken.None);
+            PaymentRequests.ValidCardPayment(), CancellationToken.None);
 
         // Assert
         Assert.IsType<BankAuthorization.Authorized>(authorization);
@@ -89,7 +88,7 @@ public class AcquiringBankClientTests
 
         // Act
         var authorization = await _client.AuthorizeAsync(
-            PaymentRequests.Valid().ToCardPayment(PaymentRequests.Today), CancellationToken.None);
+            PaymentRequests.ValidCardPayment(), CancellationToken.None);
 
         // Assert
         Assert.IsType<BankAuthorization.Declined>(authorization);
@@ -107,7 +106,7 @@ public class AcquiringBankClientTests
         // Act & Assert
         await Assert.ThrowsAsync<AcquiringBankUnavailableException>(
             () => _client.AuthorizeAsync(
-                PaymentRequests.Valid().ToCardPayment(PaymentRequests.Today), CancellationToken.None));
+                PaymentRequests.ValidCardPayment(), CancellationToken.None));
     }
 
     [Fact]
@@ -120,7 +119,7 @@ public class AcquiringBankClientTests
         // Act
         var exception = await Assert.ThrowsAsync<AcquiringBankUnavailableException>(
             () => _client.AuthorizeAsync(
-                PaymentRequests.Valid().ToCardPayment(PaymentRequests.Today), CancellationToken.None));
+                PaymentRequests.ValidCardPayment(), CancellationToken.None));
 
         // Assert
         Assert.Same(networkFailure, exception.InnerException);
@@ -136,7 +135,7 @@ public class AcquiringBankClientTests
         // Act
         var exception = await Assert.ThrowsAsync<AcquiringBankUnavailableException>(
             () => _client.AuthorizeAsync(
-                PaymentRequests.Valid().ToCardPayment(PaymentRequests.Today), CancellationToken.None));
+                PaymentRequests.ValidCardPayment(), CancellationToken.None));
 
         // Assert
         Assert.Same(timeout, exception.InnerException);
@@ -153,6 +152,6 @@ public class AcquiringBankClientTests
         // Act & Assert
         await Assert.ThrowsAnyAsync<OperationCanceledException>(
             () => _client.AuthorizeAsync(
-                PaymentRequests.Valid().ToCardPayment(PaymentRequests.Today), cancelledByCaller.Token));
+                PaymentRequests.ValidCardPayment(), cancelledByCaller.Token));
     }
 }

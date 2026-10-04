@@ -1,18 +1,15 @@
-﻿using PaymentGateway.Api.Api.Responses;
+using System.Collections.Concurrent;
+
+using PaymentGateway.Api.Domain.Model;
+using PaymentGateway.Api.Domain.Ports;
 
 namespace PaymentGateway.Api.Infrastructure.Persistence;
 
-public class PaymentsRepository
+public sealed class PaymentsRepository : IPaymentsRepository
 {
-    public List<PostPaymentResponse> Payments = new();
-    
-    public void Add(PostPaymentResponse payment)
-    {
-        Payments.Add(payment);
-    }
+    private readonly ConcurrentDictionary<Guid, PaymentEntity> _payments = new();
 
-    public PostPaymentResponse? Get(Guid id)
-    {
-        return Payments.FirstOrDefault(p => p.Id == id);
-    }
+    public void Add(PaymentDecision decision) => _payments[decision.Id] = PaymentEntity.From(decision);
+
+    public Payment? Get(Guid id) => _payments.TryGetValue(id, out var entity) ? entity.ToPayment() : null;
 }
