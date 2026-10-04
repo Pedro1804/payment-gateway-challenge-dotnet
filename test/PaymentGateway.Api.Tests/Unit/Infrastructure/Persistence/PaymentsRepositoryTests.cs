@@ -1,4 +1,3 @@
-using PaymentGateway.Api.Api;
 using PaymentGateway.Api.Domain.Model;
 using PaymentGateway.Api.Infrastructure.Persistence;
 
@@ -12,7 +11,7 @@ public class PaymentsRepositoryTests
     public void ReturnsTheRecordedPaymentWithoutSensitiveCardData()
     {
         // Arrange
-        var cardPayment = PaymentRequests.Valid().ToCardPayment(PaymentRequests.Today);
+        var cardPayment = PaymentRequests.ValidCardPayment();
         var decision = new PaymentDecision(Guid.NewGuid(), PaymentStatus.Declined, cardPayment);
         _repository.Add(decision);
 

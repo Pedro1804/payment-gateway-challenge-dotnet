@@ -1,4 +1,6 @@
+using PaymentGateway.Api.Api;
 using PaymentGateway.Api.Api.Requests;
+using PaymentGateway.Api.Domain.Model;
 
 namespace PaymentGateway.Api.Tests;
 
@@ -15,4 +17,6 @@ public static class PaymentRequests
         Amount = 1050,
         Cvv = "123"
     };
+
+    public static CardPayment ValidCardPayment() => Valid().ToCardPayment(Today);
 }

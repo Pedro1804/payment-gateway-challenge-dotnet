@@ -3,7 +3,6 @@ using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
 using NSubstitute.ExceptionExtensions;
 
-using PaymentGateway.Api.Api;
 using PaymentGateway.Api.Domain.Model;
 using PaymentGateway.Api.Domain.Ports;
 using PaymentGateway.Api.Domain.Services;
@@ -17,7 +16,7 @@ public class PaymentProcessorTests
 
     private readonly IAcquiringBank _bank = Substitute.For<IAcquiringBank>();
     private readonly IPaymentsRepository _payments = Substitute.For<IPaymentsRepository>();
-    private readonly CardPayment _cardPayment = PaymentRequests.Valid().ToCardPayment(PaymentRequests.Today);
+    private readonly CardPayment _cardPayment = PaymentRequests.ValidCardPayment();
     private readonly PaymentProcessor _processor;
 
     public PaymentProcessorTests()

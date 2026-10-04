@@ -16,7 +16,7 @@ public class PaymentsControllerTests
     public async Task RetrievesAPaymentSuccessfully()
     {
         // Arrange
-        var cardPayment = PaymentRequests.Valid().ToCardPayment(PaymentRequests.Today);
+        var cardPayment = PaymentRequests.ValidCardPayment();
         var decision = new PaymentDecision(Guid.NewGuid(), PaymentStatus.Authorized, cardPayment);
 
         var paymentsRepository = new PaymentsRepository();
