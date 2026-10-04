@@ -21,27 +21,35 @@ public class AcquiringBankClientTests
 
     private static readonly Uri BankBaseAddress = new("http://bank.test");
 
+    private readonly FakeBankHandler _bank = new();
     private readonly CardPayment _cardPayment = PaymentRequests.Valid().ToCardPayment(PaymentRequests.Today);
+    private readonly AcquiringBankClient _client;
+
+    public AcquiringBankClientTests()
+    {
+        _client = new AcquiringBankClient(
+            new HttpClient(_bank) { BaseAddress = BankBaseAddress }, NullLogger<AcquiringBankClient>.Instance);
+    }
 
     [Fact]
     public async Task PostsThePaymentToTheBankPaymentsEndpoint()
     {
         // Arrange
-        var bank = FakeBankHandler.Answering(HttpStatusCode.OK, AuthorizedAnswer);
+        _bank.Answers(HttpStatusCode.OK, AuthorizedAnswer);
 
         // Act
-        await ClientFor(bank).AuthorizeAsync(_cardPayment, CancellationToken.None);
+        await _client.AuthorizeAsync(_cardPayment, CancellationToken.None);
 
         // Assert
-        Assert.Equal(HttpMethod.Post, bank.ReceivedMethod);
-        Assert.Equal(new Uri("http://bank.test/payments"), bank.ReceivedUri);
+        Assert.Equal(HttpMethod.Post, _bank.ReceivedMethod);
+        Assert.Equal(new Uri("http://bank.test/payments"), _bank.ReceivedUri);
     }
 
     [Fact]
     public async Task SendsTheCardDetailsInTheBankFormat()
     {
         // Arrange
-        var bank = FakeBankHandler.Answering(HttpStatusCode.OK, AuthorizedAnswer);
+        _bank.Answers(HttpStatusCode.OK, AuthorizedAnswer);
         var expectedBody = JsonNode.Parse("""
             {
               "card_number": "2222405343248877",
@@ -53,22 +61,22 @@ public class AcquiringBankClientTests
             """);
 
         // Act
-        await ClientFor(bank).AuthorizeAsync(_cardPayment, CancellationToken.None);
+        await _client.AuthorizeAsync(_cardPayment, CancellationToken.None);
 
         // Assert
         Assert.True(
-            JsonNode.DeepEquals(expectedBody, JsonNode.Parse(bank.ReceivedBody ?? "null")),
-            $"Unexpected body sent to the bank: {bank.ReceivedBody}");
+            JsonNode.DeepEquals(expectedBody, JsonNode.Parse(_bank.ReceivedBody ?? "null")),
+            $"Unexpected body sent to the bank: {_bank.ReceivedBody}");
     }
 
     [Fact]
     public async Task ReturnsTheAuthorizationCodeWhenTheBankAuthorizes()
     {
         // Arrange
-        var bank = FakeBankHandler.Answering(HttpStatusCode.OK, AuthorizedAnswer);
+        _bank.Answers(HttpStatusCode.OK, AuthorizedAnswer);
 
         // Act
-        var authorization = await ClientFor(bank).AuthorizeAsync(_cardPayment, CancellationToken.None);
+        var authorization = await _client.AuthorizeAsync(_cardPayment, CancellationToken.None);
 
         // Assert
         Assert.Equal(new BankAuthorization.Authorized(AuthorizationCode), authorization);
@@ -78,10 +86,10 @@ public class AcquiringBankClientTests
     public async Task ReturnsDeclinedWhenTheBankDeclines()
     {
         // Arrange
-        var bank = FakeBankHandler.Answering(HttpStatusCode.OK, DeclinedAnswer);
+        _bank.Answers(HttpStatusCode.OK, DeclinedAnswer);
 
         // Act
-        var authorization = await ClientFor(bank).AuthorizeAsync(_cardPayment, CancellationToken.None);
+        var authorization = await _client.AuthorizeAsync(_cardPayment, CancellationToken.None);
 
         // Assert
         Assert.IsType<BankAuthorization.Declined>(authorization);
@@ -94,11 +102,11 @@ public class AcquiringBankClientTests
     public async Task ReportsTheBankUnavailableWhenItAnswersWithAnError(HttpStatusCode status)
     {
         // Arrange
-        var bank = FakeBankHandler.Answering(status);
+        _bank.Answers(status);
 
         // Act & Assert
         await Assert.ThrowsAsync<AcquiringBankUnavailableException>(
-            () => ClientFor(bank).AuthorizeAsync(_cardPayment, CancellationToken.None));
+            () => _client.AuthorizeAsync(_cardPayment, CancellationToken.None));
     }
 
     [Fact]
@@ -106,11 +114,11 @@ public class AcquiringBankClientTests
     {
         // Arrange
         var networkFailure = new HttpRequestException("connection refused");
-        var bank = FakeBankHandler.Failing(networkFailure);
+        _bank.Fails(networkFailure);
 
         // Act
         var exception = await Assert.ThrowsAsync<AcquiringBankUnavailableException>(
-            () => ClientFor(bank).AuthorizeAsync(_cardPayment, CancellationToken.None));
+            () => _client.AuthorizeAsync(_cardPayment, CancellationToken.None));
 
         // Assert
         Assert.Same(networkFailure, exception.InnerException);
@@ -121,11 +129,11 @@ public class AcquiringBankClientTests
     {
         // Arrange
         var timeout = new TaskCanceledException("timed out", new TimeoutException());
-        var bank = FakeBankHandler.Failing(timeout);
+        _bank.Fails(timeout);
 
         // Act
         var exception = await Assert.ThrowsAsync<AcquiringBankUnavailableException>(
-            () => ClientFor(bank).AuthorizeAsync(_cardPayment, CancellationToken.None));
+            () => _client.AuthorizeAsync(_cardPayment, CancellationToken.None));
 
         // Assert
         Assert.Same(timeout, exception.InnerException);
@@ -135,15 +143,12 @@ public class AcquiringBankClientTests
     public async Task LetsTheCallerCancellationThrough()
     {
         // Arrange
-        var bank = FakeBankHandler.Answering(HttpStatusCode.OK, AuthorizedAnswer);
+        _bank.Answers(HttpStatusCode.OK, AuthorizedAnswer);
         using var cancelledByCaller = new CancellationTokenSource();
         await cancelledByCaller.CancelAsync();
 
         // Act & Assert
         await Assert.ThrowsAnyAsync<OperationCanceledException>(
-            () => ClientFor(bank).AuthorizeAsync(_cardPayment, cancelledByCaller.Token));
+            () => _client.AuthorizeAsync(_cardPayment, cancelledByCaller.Token));
     }
-
-    private static AcquiringBankClient ClientFor(FakeBankHandler bank) =>
-        new(new HttpClient(bank) { BaseAddress = BankBaseAddress }, NullLogger<AcquiringBankClient>.Instance);
 }

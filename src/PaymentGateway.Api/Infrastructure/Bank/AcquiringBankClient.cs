@@ -9,22 +9,18 @@ public sealed class AcquiringBankClient(HttpClient httpClient, ILogger<Acquiring
 {
     public async Task<BankAuthorization> AuthorizeAsync(CardPayment payment, CancellationToken cancellationToken)
     {
+        using var response = await PostToBankAsync(BankPaymentRequest.From(payment), cancellationToken);
+        EnsureBankAnsweredOk(response);
+        var answer = await response.Content.ReadFromJsonAsync<BankPaymentResponse>(cancellationToken);
+        return answer!.ToBankAuthorization();
+    }
+
+    private async Task<HttpResponseMessage> PostToBankAsync(
+        BankPaymentRequest request, CancellationToken cancellationToken)
+    {
         try
         {
-            using var response = await httpClient.PostAsJsonAsync(
-                "payments", BankPaymentRequest.From(payment), cancellationToken);
-
-            if (response.StatusCode != HttpStatusCode.OK)
-            {
-                logger.LogWarning("Acquiring bank answered with status {StatusCode}", (int)response.StatusCode);
-                throw new AcquiringBankUnavailableException(
-                    $"Acquiring bank answered with status {(int)response.StatusCode}.");
-            }
-
-            var answer = await response.Content.ReadFromJsonAsync<BankPaymentResponse>(cancellationToken);
-            return answer!.Authorized
-                ? new BankAuthorization.Authorized(answer.AuthorizationCode!)
-                : new BankAuthorization.Declined();
+            return await httpClient.PostAsJsonAsync("payments", request, cancellationToken);
         }
         catch (HttpRequestException exception)
         {
@@ -36,5 +32,17 @@ public sealed class AcquiringBankClient(HttpClient httpClient, ILogger<Acquiring
             logger.LogWarning("Acquiring bank did not answer in time");
             throw new AcquiringBankUnavailableException("Acquiring bank did not answer in time.", exception);
         }
+    }
+
+    private void EnsureBankAnsweredOk(HttpResponseMessage response)
+    {
+        if (response.StatusCode == HttpStatusCode.OK)
+        {
+            return;
+        }
+
+        logger.LogWarning("Acquiring bank answered with status {StatusCode}", (int)response.StatusCode);
+        throw new AcquiringBankUnavailableException(
+            $"Acquiring bank answered with status {(int)response.StatusCode}.");
     }
 }

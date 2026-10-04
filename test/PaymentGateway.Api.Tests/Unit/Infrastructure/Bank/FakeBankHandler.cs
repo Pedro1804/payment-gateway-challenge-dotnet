@@ -5,12 +5,8 @@ namespace PaymentGateway.Api.Tests.Unit.Infrastructure.Bank;
 
 public sealed class FakeBankHandler : HttpMessageHandler
 {
-    private readonly Func<HttpResponseMessage> _respond;
-
-    private FakeBankHandler(Func<HttpResponseMessage> respond)
-    {
-        _respond = respond;
-    }
+    private Func<HttpResponseMessage> _respond =
+        () => throw new InvalidOperationException("The fake bank was not told how to answer.");
 
     public HttpMethod? ReceivedMethod { get; private set; }
 
@@ -18,13 +14,13 @@ public sealed class FakeBankHandler : HttpMessageHandler
 
     public string? ReceivedBody { get; private set; }
 
-    public static FakeBankHandler Answering(HttpStatusCode status, string jsonBody = "{}") =>
-        new(() => new HttpResponseMessage(status)
+    public void Answers(HttpStatusCode status, string jsonBody = "{}") =>
+        _respond = () => new HttpResponseMessage(status)
         {
             Content = new StringContent(jsonBody, Encoding.UTF8, "application/json")
-        });
+        };
 
-    public static FakeBankHandler Failing(Exception exception) => new(() => throw exception);
+    public void Fails(Exception exception) => _respond = () => throw exception;
 
     protected override async Task<HttpResponseMessage> SendAsync(
         HttpRequestMessage request, CancellationToken cancellationToken)
