@@ -4,7 +4,6 @@ using System.Text.Json.Nodes;
 using Microsoft.Extensions.Logging.Abstractions;
 
 using PaymentGateway.Api.Api;
-using PaymentGateway.Api.Domain.Model;
 using PaymentGateway.Api.Domain.Ports;
 using PaymentGateway.Api.Infrastructure.Bank;
 
@@ -22,7 +21,6 @@ public class AcquiringBankClientTests
     private static readonly Uri BankBaseAddress = new("http://bank.test");
 
     private readonly FakeBankHandler _bank = new();
-    private readonly CardPayment _cardPayment = PaymentRequests.Valid().ToCardPayment(PaymentRequests.Today);
     private readonly AcquiringBankClient _client;
 
     public AcquiringBankClientTests()
@@ -38,7 +36,8 @@ public class AcquiringBankClientTests
         _bank.Answers(HttpStatusCode.OK, AuthorizedAnswer);
 
         // Act
-        await _client.AuthorizeAsync(_cardPayment, CancellationToken.None);
+        await _client.AuthorizeAsync(
+            PaymentRequests.Valid().ToCardPayment(PaymentRequests.Today), CancellationToken.None);
 
         // Assert
         Assert.Equal(HttpMethod.Post, _bank.ReceivedMethod);
@@ -61,7 +60,8 @@ public class AcquiringBankClientTests
             """);
 
         // Act
-        await _client.AuthorizeAsync(_cardPayment, CancellationToken.None);
+        await _client.AuthorizeAsync(
+            PaymentRequests.Valid().ToCardPayment(PaymentRequests.Today), CancellationToken.None);
 
         // Assert
         Assert.True(
@@ -76,7 +76,8 @@ public class AcquiringBankClientTests
         _bank.Answers(HttpStatusCode.OK, AuthorizedAnswer);
 
         // Act
-        var authorization = await _client.AuthorizeAsync(_cardPayment, CancellationToken.None);
+        var authorization = await _client.AuthorizeAsync(
+            PaymentRequests.Valid().ToCardPayment(PaymentRequests.Today), CancellationToken.None);
 
         // Assert
         Assert.Equal(new BankAuthorization.Authorized(AuthorizationCode), authorization);
@@ -89,7 +90,8 @@ public class AcquiringBankClientTests
         _bank.Answers(HttpStatusCode.OK, DeclinedAnswer);
 
         // Act
-        var authorization = await _client.AuthorizeAsync(_cardPayment, CancellationToken.None);
+        var authorization = await _client.AuthorizeAsync(
+            PaymentRequests.Valid().ToCardPayment(PaymentRequests.Today), CancellationToken.None);
 
         // Assert
         Assert.IsType<BankAuthorization.Declined>(authorization);
@@ -106,7 +108,8 @@ public class AcquiringBankClientTests
 
         // Act & Assert
         await Assert.ThrowsAsync<AcquiringBankUnavailableException>(
-            () => _client.AuthorizeAsync(_cardPayment, CancellationToken.None));
+            () => _client.AuthorizeAsync(
+                PaymentRequests.Valid().ToCardPayment(PaymentRequests.Today), CancellationToken.None));
     }
 
     [Fact]
@@ -118,7 +121,8 @@ public class AcquiringBankClientTests
 
         // Act
         var exception = await Assert.ThrowsAsync<AcquiringBankUnavailableException>(
-            () => _client.AuthorizeAsync(_cardPayment, CancellationToken.None));
+            () => _client.AuthorizeAsync(
+                PaymentRequests.Valid().ToCardPayment(PaymentRequests.Today), CancellationToken.None));
 
         // Assert
         Assert.Same(networkFailure, exception.InnerException);
@@ -133,7 +137,8 @@ public class AcquiringBankClientTests
 
         // Act
         var exception = await Assert.ThrowsAsync<AcquiringBankUnavailableException>(
-            () => _client.AuthorizeAsync(_cardPayment, CancellationToken.None));
+            () => _client.AuthorizeAsync(
+                PaymentRequests.Valid().ToCardPayment(PaymentRequests.Today), CancellationToken.None));
 
         // Assert
         Assert.Same(timeout, exception.InnerException);
@@ -149,6 +154,7 @@ public class AcquiringBankClientTests
 
         // Act & Assert
         await Assert.ThrowsAnyAsync<OperationCanceledException>(
-            () => _client.AuthorizeAsync(_cardPayment, cancelledByCaller.Token));
+            () => _client.AuthorizeAsync(
+                PaymentRequests.Valid().ToCardPayment(PaymentRequests.Today), cancelledByCaller.Token));
     }
 }
