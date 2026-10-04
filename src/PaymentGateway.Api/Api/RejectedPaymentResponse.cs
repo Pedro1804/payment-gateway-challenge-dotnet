@@ -11,7 +11,7 @@ public static class RejectedPaymentResponse
     {
         var problemDetailsFactory = context.HttpContext.RequestServices.GetRequiredService<ProblemDetailsFactory>();
         var problem = problemDetailsFactory.CreateValidationProblemDetails(context.HttpContext, context.ModelState);
-        problem.Extensions["paymentStatus"] = PaymentStatus.Rejected.ToString();
+        problem.Extensions["paymentStatus"] = nameof(PaymentStatus.Rejected);
         return new BadRequestObjectResult(problem) { ContentTypes = { "application/problem+json" } };
     }
 }

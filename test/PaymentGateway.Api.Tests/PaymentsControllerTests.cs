@@ -40,7 +40,7 @@ public class PaymentsControllerTests
             .CreateClient();
 
         // Act
-        var response = await client.GetAsync($"/api/Payments/{payment.Id}");
+        var response = await client.GetAsync($"/api/payments/{payment.Id}");
         var paymentResponse = await response.Content.ReadFromJsonAsync<PostPaymentResponse>(
             new JsonSerializerOptions(JsonSerializerDefaults.Web) { Converters = { new JsonStringEnumConverter() } });
         
@@ -57,7 +57,7 @@ public class PaymentsControllerTests
         var client = webApplicationFactory.CreateClient();
         
         // Act
-        var response = await client.GetAsync($"/api/Payments/{Guid.NewGuid()}");
+        var response = await client.GetAsync($"/api/payments/{Guid.NewGuid()}");
         
         // Assert
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);

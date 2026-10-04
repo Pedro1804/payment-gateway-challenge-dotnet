@@ -17,7 +17,7 @@ namespace PaymentGateway.Api.Tests.Integration;
 
 public abstract class PostPaymentTests : IDisposable
 {
-    private const string PaymentsPath = "/api/Payments";
+    private const string PaymentsPath = "/api/payments";
 
     private readonly IAcquiringBank _bank = Substitute.For<IAcquiringBank>();
     private readonly WebApplicationFactory<Program> _factory;
