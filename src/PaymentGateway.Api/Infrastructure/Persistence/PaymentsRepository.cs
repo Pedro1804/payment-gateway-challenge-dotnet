@@ -7,9 +7,9 @@ namespace PaymentGateway.Api.Infrastructure.Persistence;
 
 public sealed class PaymentsRepository : IPaymentsRepository
 {
-    private readonly ConcurrentDictionary<Guid, Payment> _payments = new();
+    private readonly ConcurrentDictionary<Guid, PaymentEntity> _payments = new();
 
-    public void Add(PaymentDecision decision) => _payments[decision.Id] = Payment.From(decision);
+    public void Add(PaymentDecision decision) => _payments[decision.Id] = PaymentEntity.From(decision);
 
-    public Payment? Get(Guid id) => _payments.GetValueOrDefault(id);
+    public Payment? Get(Guid id) => _payments.TryGetValue(id, out var entity) ? entity.ToPayment() : null;
 }

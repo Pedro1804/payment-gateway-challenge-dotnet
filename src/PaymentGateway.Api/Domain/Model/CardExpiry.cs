@@ -2,7 +2,7 @@ namespace PaymentGateway.Api.Domain.Model;
 
 public sealed record CardExpiry
 {
-    public CardExpiry(int month, int year, DateOnly today)
+    public CardExpiry(int month, int year, DateOnly today) : this(month, year)
     {
         if (IsNotAValidMonth(month))
         {
@@ -13,7 +13,10 @@ public sealed record CardExpiry
         {
             throw new InvalidPaymentException("expiryYear", "Card expiry date must not be in the past.");
         }
+    }
 
+    private CardExpiry(int month, int year)
+    {
         Month = month;
         Year = year;
     }
@@ -22,7 +25,7 @@ public sealed record CardExpiry
 
     public int Year { get; }
 
-    public static CardExpiry Restore(int month, int year) => throw new NotImplementedException();
+    public static CardExpiry Restore(int month, int year) => new(month, year);
 
     private static bool IsNotAValidMonth(int month) => month is < 1 or > 12;
 
