@@ -1,3 +1,5 @@
+using PaymentGateway.Api.Domain.Exceptions;
+
 namespace PaymentGateway.Api.Domain.Model;
 
 public sealed record CardExpiry

@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
 using NSubstitute.ExceptionExtensions;
 
+using PaymentGateway.Api.Domain.Exceptions;
 using PaymentGateway.Api.Domain.Model;
 using PaymentGateway.Api.Domain.Ports;
 using PaymentGateway.Api.Domain.Services;

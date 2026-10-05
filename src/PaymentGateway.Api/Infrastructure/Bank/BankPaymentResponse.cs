@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-using PaymentGateway.Api.Domain.Ports;
+using PaymentGateway.Api.Domain.Model;
 
 namespace PaymentGateway.Api.Infrastructure.Bank;
 

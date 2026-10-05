@@ -3,7 +3,8 @@ using System.Text.Json.Nodes;
 
 using Microsoft.Extensions.Logging.Abstractions;
 
-using PaymentGateway.Api.Domain.Ports;
+using PaymentGateway.Api.Domain.Exceptions;
+using PaymentGateway.Api.Domain.Model;
 using PaymentGateway.Api.Infrastructure.Bank;
 
 namespace PaymentGateway.Api.Tests.Unit.Infrastructure.Bank;
