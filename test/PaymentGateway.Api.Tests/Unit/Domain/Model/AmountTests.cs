@@ -1,3 +1,4 @@
+using PaymentGateway.Api.Domain.Exceptions;
 using PaymentGateway.Api.Domain.Model;
 
 namespace PaymentGateway.Api.Tests.Unit.Domain.Model;

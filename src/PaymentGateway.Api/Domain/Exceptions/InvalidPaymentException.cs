@@ -1,4 +1,4 @@
-namespace PaymentGateway.Api.Domain.Model;
+namespace PaymentGateway.Api.Domain.Exceptions;
 
 public sealed class InvalidPaymentException(string field, string message) : Exception(message)
 {

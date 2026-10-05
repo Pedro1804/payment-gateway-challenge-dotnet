@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 
 using PaymentGateway.Api.Api.Requests;
 using PaymentGateway.Api.Api.Responses;
-using PaymentGateway.Api.Domain.Model;
+using PaymentGateway.Api.Domain.Exceptions;
 using PaymentGateway.Api.Domain.Ports;
 using PaymentGateway.Api.Domain.Services;
 

@@ -1,5 +1,6 @@
 using System.Net;
 
+using PaymentGateway.Api.Domain.Exceptions;
 using PaymentGateway.Api.Domain.Model;
 using PaymentGateway.Api.Domain.Ports;
 

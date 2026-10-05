@@ -1,4 +1,4 @@
-namespace PaymentGateway.Api.Domain.Ports;
+namespace PaymentGateway.Api.Domain.Model;
 
 public abstract record BankAuthorization
 {
