@@ -39,7 +39,7 @@ public class PaymentsController(
     }
 
     [HttpGet("{id:guid}")]
-    public ActionResult<PostPaymentResponse> GetPayment(Guid id)
+    public ActionResult<GetPaymentResponse> GetPayment(Guid id)
     {
         var payment = paymentsRepository.Get(id);
 
@@ -48,7 +48,7 @@ public class PaymentsController(
             return NotFound();
         }
 
-        return Ok(payment);
+        return payment.ToGetPaymentResponse();
     }
 
     private ActionResult Reject(InvalidPaymentException exception)

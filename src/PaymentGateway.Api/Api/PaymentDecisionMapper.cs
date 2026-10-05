@@ -8,7 +8,7 @@ public static class PaymentDecisionMapper
     public static PostPaymentResponse ToPostPaymentResponse(this PaymentDecision decision) => new()
     {
         Id = decision.Id,
-        Status = decision.Status,
+        Status = decision.Status.ToResponseStatus(),
         CardNumberLastFour = decision.CardPayment.CardNumber.LastFour,
         ExpiryMonth = decision.CardPayment.Expiry.Month,
         ExpiryYear = decision.CardPayment.Expiry.Year,
