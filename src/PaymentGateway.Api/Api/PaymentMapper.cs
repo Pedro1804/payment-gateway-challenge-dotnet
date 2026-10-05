@@ -8,7 +8,7 @@ public static class PaymentMapper
     public static GetPaymentResponse ToGetPaymentResponse(this Payment payment) => new()
     {
         Id = payment.Id,
-        Status = payment.Status,
+        Status = payment.Status.ToResponseStatus(),
         CardNumberLastFour = payment.CardNumberLastFour,
         ExpiryMonth = payment.Expiry.Month,
         ExpiryYear = payment.Expiry.Year,

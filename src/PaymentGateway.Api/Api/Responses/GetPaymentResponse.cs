@@ -1,11 +1,9 @@
-﻿using PaymentGateway.Api.Domain.Model;
-
-namespace PaymentGateway.Api.Api.Responses;
+﻿namespace PaymentGateway.Api.Api.Responses;
 
 public class GetPaymentResponse
 {
     public Guid Id { get; set; }
-    public PaymentStatus Status { get; set; }
+    public required string Status { get; set; }
     public required string CardNumberLastFour { get; set; }
     public int ExpiryMonth { get; set; }
     public int ExpiryYear { get; set; }

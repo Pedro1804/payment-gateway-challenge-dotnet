@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc.Infrastructure;
 
 using PaymentGateway.Api.Domain.Model;
 
-namespace PaymentGateway.Api.Api;
+namespace PaymentGateway.Api.Api.Responses;
 
 public static class RejectedPaymentResponse
 {
