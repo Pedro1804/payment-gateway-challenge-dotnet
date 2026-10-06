@@ -1,25 +1,29 @@
-# Instructions for candidates
+# Payment Gateway
 
-This is the .NET version of the Payment Gateway challenge. If you haven't already read this [README.md](https://github.com/cko-recruitment/) on the details of this exercise, please do so now. 
+.NET implementation of the Checkout.com payment gateway challenge: an API that lets a merchant process a card payment through an acquiring bank and retrieve it afterwards.
 
-## Template structure
+## Documentation
+
+- [Design considerations & assumptions](docs/design-considerations.md): architecture, API contract, validation rules, storage and what is out of scope.
+- [Request examples](docs/post-payment-examples.md): `curl` requests and the responses to expect for every scenario.
+
+## Structure
 ```
 src/
-    PaymentGateway.Api - a skeleton ASP.NET Core Web API
+    PaymentGateway.Api - the payment gateway ASP.NET Core Web API
 test/
-    PaymentGateway.Api.Tests - an empty xUnit test project
+    PaymentGateway.Api.Tests - xUnit unit and integration tests
+docs/ - design considerations and request examples
 imposters/ - contains the bank simulator configuration. Don't change this
 
 .editorconfig - don't change this. It ensures a consistent set of rules for submissions when reformatting code
-docker-compose.yml - configures the bank simulator
+docker-compose.yml - runs the gateway and the bank simulator
 PaymentGateway.sln
 ```
 
-Feel free to change the structure of the solution, use a different test library etc.
-
 ## Running locally
 
-Full stack (API + bank simulator), Swagger at http://localhost:5067/swagger:
+Full stack (API + bank simulator), Swagger at http://localhost:5067/swagger and liveness at http://localhost:5067/health:
 ```
 docker compose up --build
 docker compose logs -f payment_gateway
@@ -29,4 +33,9 @@ Development (debugging, hot reload): run only the bank in Docker and the API fro
 ```
 docker compose up bank_simulator
 dotnet run --project src/PaymentGateway.Api
+```
+
+## Running the tests
+```
+dotnet test
 ```
