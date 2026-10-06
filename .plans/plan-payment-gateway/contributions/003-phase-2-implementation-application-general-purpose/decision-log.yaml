@@ -1,0 +1,47 @@
+commit: "52765141ad9c0b0747cbbe1242609c3d8b34beff"
+
+decisions:
+  - number: 1
+    title: "Domain/Payment renamed PaymentDecision(Id, Status, CardPayment, AuthorizationCode); it holds the full CardPayment."
+    rationale: "User's choice: the domain can carry the full number and CVV without exposing them; the HTTP response and the stored entity are distinct types that only keep the last 4 digits. Rejected: primitive ExpiryMonth/ExpiryYear/LastFour fields planned in the plan. CardNumber and Cvv already mask their ToString()."
+    code_impacts:
+      - file: "src/PaymentGateway.Api/Domain/PaymentDecision.cs"
+        reasoning: "[Structural - Public API] Type consumed by phases 4 (POST response), 5 (storage) and 6 (GET); none of them may serialize CardPayment as is."
+        line_ranges:
+          - start: 5
+            end: 5
+
+  - number: 2
+    title: "IAcquiringBank.AuthorizeAsync(CardPayment, CancellationToken) port → closed BankAuthorization: Authorized(string AuthorizationCode) | Declined (nested records, private constructor); unavailability reported through AcquiringBankUnavailableException(message, innerException?)."
+    rationale: "User review: closed hierarchy rather than a bool + nullable code, an \"authorized without code\" cannot be built; no Status field, the type is the status. AuthorizeAsync keeps the Async suffix (.NET convention). The exception's innerException lets the adapter keep the network cause."
+    code_impacts:
+      - file: "src/PaymentGateway.Api/Application/IAcquiringBank.cs"
+        reasoning: "[Structural - Public API] Contract implemented by the phase 3 HTTP adapter."
+        line_ranges:
+          - start: 5
+            end: 8
+      - file: "src/PaymentGateway.Api/Application/AcquiringBankUnavailableException.cs"
+        reasoning: "[Behavioral - Error path] Propagated without being caught by the processor; to translate into a 502 in phase 4."
+        line_ranges:
+          - start: 3
+            end: 4
+
+  - number: 3
+    title: "PaymentProcessor: Authorized/Declined status derived from IsAuthorized, new Id Guid.NewGuid(), Information log with PaymentId and Status only."
+    rationale: "Compliant with the plan and decision 11 (no card data in logs)."
+    code_impacts:
+      - file: "src/PaymentGateway.Api/Application/PaymentProcessor.cs"
+        reasoning: "[Behavioral - Core logic] Insertion point of the storage in phase 5 (after the bank response)."
+        line_ranges:
+          - start: 8
+            end: 17
+
+  - number: 4
+    title: "Tests: NSubstitute 6.2.0, NullLogger, bank responses named AuthorizedByBank/DeclinedByBank."
+    rationale: "Plan decision 9."
+    code_impacts:
+      - file: "test/PaymentGateway.Api.Tests/Unit/Application/PaymentProcessorTests.cs"
+        reasoning: "[Test] 5 tests: authorized, declined, CardPayment forwarded, distinct Ids, bank unavailable propagated."
+        line_ranges:
+          - start: 13
+            end: 104

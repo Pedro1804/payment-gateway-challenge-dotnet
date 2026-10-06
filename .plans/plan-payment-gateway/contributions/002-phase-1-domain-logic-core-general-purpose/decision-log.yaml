@@ -1,0 +1,72 @@
+commit: "ec71cbf9f65d830d98fdedf4804c8c00bf92ffc7"
+
+decisions:
+  - number: 1
+    title: "Self-validating value objects: each constructor throws InvalidPaymentException(Field, Message), Field = JSON field name."
+    rationale: "User's choice (plan decision 13): a value object cannot exist in an invalid state, no Result<T>. Accepted cost: a single error returned."
+    code_impacts:
+      - file: "src/PaymentGateway.Api/Domain/InvalidPaymentException.cs"
+        reasoning: "[Structural - Public API] Domain error contract: phase 4 must translate this exception into a 400 with paymentStatus Rejected and Field as the error key."
+        line_ranges:
+          - start: 3
+            end: 6
+
+  - number: 2
+    title: "Only the first error bubbles up, in the order of the request fields (cardNumber, expiry, currency then amount through Amount, cvv)."
+    rationale: "Consequence of decision 1; the C# argument evaluation order (left → right) guarantees it in the mapper."
+    code_impacts:
+      - file: "src/PaymentGateway.Api/Services/PostPaymentRequestMapper.cs"
+        reasoning: "[Behavioral - Error path change] Reordering the arguments changes the reported field when several are invalid (covered by RejectsTheFirstInvalidFieldInRequestOrder)."
+        line_ranges:
+          - start: 8
+            end: 13
+
+  - number: 3
+    title: "Request DTO: CardNumber and Cvv as string, all fields required and non-nullable."
+    rationale: "Needed to receive the full number and keep leading zeros; user review: field presence is guaranteed by ASP.NET from the endpoint (automatic 400), the domain only validates format."
+    code_impacts:
+      - file: "src/PaymentGateway.Api/Models/Requests/PostPaymentRequest.cs"
+        reasoning: "[Structural - Public API] POST JSON contract: cardNumber replaces cardNumberLastFour, cvv becomes a string."
+        line_ranges:
+          - start: 5
+            end: 10
+
+  - number: 4
+    title: "Today's date is passed as DateOnly to the domain and the mapper; no TimeProvider nor FakeTimeProvider in phase 1."
+    rationale: "Deterministic tests without an extra dependency; the HTTP layer (phase 4) will compute the date through TimeProvider in UTC."
+    code_impacts:
+      - file: "src/PaymentGateway.Api/Domain/CardExpiry.cs"
+        reasoning: "[Behavioral - Invariant mutation] An expiry is valid if (year, month) ≥ (year, month) of today: the current month is accepted; a past date is reported on expiryYear."
+        line_ranges:
+          - start: 5
+            end: 28
+
+  - number: 5
+    title: "ASCII digits only (char.IsAsciiDigit) for card and CVV; card number and CVV masked in ToString()."
+    rationale: "char.IsDigit would accept Unicode digits (e.g. Arabic) that the bank does not understand; masking prevents any leak through a CardPayment log."
+    code_impacts:
+      - file: "src/PaymentGateway.Api/Domain/CardNumber.cs"
+        reasoning: "[Behavioral - Invariant mutation] Any change to ToString() must keep excluding the full number (covered by test)."
+        line_ranges:
+          - start: 5
+            end: 24
+      - file: "src/PaymentGateway.Api/Domain/Cvv.cs"
+        reasoning: "[Behavioral - Invariant mutation] ToString() must never expose the CVV (covered by test)."
+        line_ranges:
+          - start: 5
+            end: 22
+
+  - number: 6
+    title: "Amount now carries the amount in minor units and its Currency; CardPayment.Amount is of type Amount; the mapper is moved to Services/."
+    rationale: "User request during review: an amount only makes sense with its currency. Amount validates the currency before the amount to respect the request field order."
+    code_impacts:
+      - file: "src/PaymentGateway.Api/Domain/Amount.cs"
+        reasoning: "[Structural - Core entity shape] CardPayment exposes Amount.MinorUnits and Amount.Currency: phases 2 to 4 (Payment, bank DTO, responses) must read amount and currency through Amount (MinorUnits, Currency)."
+        line_ranges:
+          - start: 5
+            end: 22
+
+  - number: 7
+    title: "Each domain validation rule is extracted into a named private method (HasInvalidLength, ContainsNonDigits, IsNotSupported, IsNotPositive, IsNotAValidMonth, IsBeforeCurrentMonth), phrased negatively to avoid if (!...)."
+    rationale: "User request during review: the constructor reads like the business rule."
+    code_impacts: []

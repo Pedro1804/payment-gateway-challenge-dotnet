@@ -1,0 +1,77 @@
+commit: null
+
+decisions:
+  - number: 1
+    title: "Strategy: Core-then-Integrate (domain, then ports/adapters, then integration) with TDD at each step."
+    rationale: "User's choice: business rules testable in isolation before wiring HTTP and the bank. Rejected: Steel Thread alone (requirements already clear, no need for early feedback); TDD alone (does not structure the domain → adapters progression)."
+    code_impacts: []
+
+  - number: 2
+    title: "Phase 0: fix the GET 404 for a green CI; then POST (phases 1–5), GET (phase 6)."
+    rationale: "User's choice: one feature at a time. Storage is done at the end of step 1 (phase 5) so that the Id returned by the POST is usable."
+    code_impacts: []
+
+  - number: 3
+    title: "RESTful API: POST → 201 Created + Location; Rejected → 400 ValidationProblemDetails with paymentStatus extension \"Rejected\"; unknown GET → 404."
+    rationale: "User requirement. Declined is a created payment, so 201 as well."
+    code_impacts: []
+
+  - number: 4
+    title: "Bank unavailable or unexpected response → 502 Bad Gateway with ProblemDetails, payment not stored."
+    rationale: "Transient upstream error: a 5xx tells the client it can retry. Rejected: 402 (\"payment required\" semantics, suggests a card problem). Retry/backoff considered after the requirements."
+    code_impacts: []
+
+  - number: 5
+    title: "Rejected is never stored nor sent to the bank."
+    rationale: "The brief: \"no payment could be created\". The statuses visible on GET are Authorized/Declined."
+    code_impacts: []
+
+  - number: 6
+    title: "Rules: case-sensitive EUR/USD/GBP currencies; card expiring this month is valid (UTC); amount > 0."
+    rationale: "Validated by the user."
+    code_impacts: []
+
+  - number: 7
+    title: "A single API project organized in Domain/Application/Infrastructure folders."
+    rationale: "Ports & adapters without over-engineering; the Dockerfile (context = project folder) stays valid. Rejected: one project per layer."
+    code_impacts: []
+
+  - number: 8
+    title: "Hand-written validation through domain value objects; request DTO with nullable properties."
+    rationale: "Pure unit tests, a single source of truth. Rejected: DataAnnotations (scattered rules, automatic 400s outside our format), FluentValidation (unnecessary dependency)."
+    code_impacts: []
+
+  - number: 9
+    title: "Tests: xUnit + Assert, NSubstitute for ports, fake HttpMessageHandler for the adapter, WebApplicationFactory<Program> with a substituted bank."
+    rationale: "Rejected: Moq (loss of trust after the 2023 SponsorLink incident), FluentAssertions (paid license since v8)."
+    code_impacts: []
+
+  - number: 10
+    title: "Existing models modified only when necessary; no upfront cleanup phase."
+    rationale: "User's choice."
+    code_impacts: []
+
+  - number: 11
+    title: "Logs limited to useful points, without card number, CVV or request body."
+    rationale: "User requirement and PCI compliance."
+    code_impacts: []
+
+  - number: 12
+    title: "One branch and one PR per phase."
+    rationale: "User's choice; small, reviewable PRs."
+    code_impacts: []
+
+  - number: 13
+    title: "Validation through exceptions: an invalid value object throws InvalidPaymentException; only the first error is returned to the merchant."
+    rationale: "User's choice during phase 1: removes Result<T> and error aggregation, simpler code and tests. Accepted cost: the merchant fixes errors one at a time. Revises the \"factory returning the object or an error\" part of decision 8."
+    code_impacts: []
+
+  - number: 14
+    title: "Request fields mandatory from the endpoint (required, non-nullable); the domain no longer validates presence, only format."
+    rationale: "User request during the phase 1 review: nullability does not need to travel down to the domain. Revises the \"DTO with nullable properties\" part of decision 8."
+    code_impacts: []
+
+  - number: 15
+    title: "Hexagonal tree: Domain/{Model,Ports,Services}, Api/ (inbound adapter), Infrastructure/{Bank,Persistence} (outbound adapters); namespaces aligned on folders."
+    rationale: "User's choice after phase 2: make domain and adapters visible. Revises decision 7 (Application/ folder removed, ports in the domain). Rejected: Api/ under Infrastructure/ (hides the inbound / outbound adapter distinction)."
+    code_impacts: []

@@ -1,0 +1,12 @@
+commit: "098e9dbdae566bceff0f1fcd89645b52b60c277e"
+
+decisions:
+  - number: 1
+    title: "GetPaymentAsync returns NotFound() when the repository does not find the payment, Ok(payment) otherwise."
+    rationale: "Minimal fix to make the CI green; signature, return type and repository deliberately unchanged (redesign planned in phase 6)."
+    code_impacts:
+      - file: "src/PaymentGateway.Api/Controllers/PaymentsController.cs"
+        reasoning: "[Behavioral - Error path change] An unknown id returns 404 instead of 204; clients that treated 204 as \"not found\" must now handle 404."
+        line_ranges:
+          - start: 22
+            end: 29

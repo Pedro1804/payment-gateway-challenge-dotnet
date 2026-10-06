@@ -1,0 +1,69 @@
+commit: "a2514ec169770b9f147de8e8a02fa5b01bff7277"
+
+decisions:
+  - number: 1
+    title: "Domain rejections and automatic [ApiController] 400s share one factory, RejectedPaymentResponse.From, which adds paymentStatus = Rejected to a ValidationProblemDetails."
+    rationale: "ControllerBase.ValidationProblem() does not go through InvalidModelStateResponseFactory in .NET 8 (paymentStatus was missing), so the controller calls the factory explicitly with ControllerContext."
+    code_impacts:
+      - file: "src/PaymentGateway.Api/Api/RejectedPaymentResponse.cs"
+        reasoning: "[Structural - Public API] Single source of the 400 contract for both deserialization and domain failures; any change alters every rejected response."
+        line_ranges:
+          - start: 10
+            end: 16
+      - file: "src/PaymentGateway.Api/Program.cs"
+        reasoning: "[Behavioral - Error path change] Replaces the default InvalidModelStateResponseFactory: every model-binding failure (missing, null, wrong type) now answers with paymentStatus = Rejected."
+        line_ranges:
+          - start: 13
+            end: 15
+
+  - number: 2
+    title: "Null string fields (cvv, cardNumber) rely on MVC implicit [Required] for non-nullable reference types; null or non-integer numeric fields fail in System.Text.Json."
+    rationale: "System.Text.Json in .NET 8 accepts null for a required string; Nullable is enabled in the API project, so MVC validation rejects it before the domain. Covered by RejectedWithoutCallingTheBank.WhenAFieldIsNull."
+    code_impacts: []
+
+  - number: 3
+    title: "AcquiringBankUnavailableException is mapped to 502 ProblemDetails by a try/catch in the action, not an IExceptionHandler; OperationCanceledException passes through."
+    rationale: "Single action, single exception type: try/catch is the simplest option allowed by the roadmap."
+    code_impacts:
+      - file: "src/PaymentGateway.Api/Api/PaymentsController.cs"
+        reasoning: "[Behavioral - Error path change] Only AcquiringBankUnavailableException becomes 502; any other processor exception surfaces as 500."
+        line_ranges:
+          - start: 36
+            end: 44
+
+  - number: 4
+    title: "The GET action is renamed GetPayment and made synchronous so CreatedAtAction(nameof(GetPayment)) resolves its route."
+    rationale: "ASP.NET strips the Async suffix from action names; renaming is simpler than SuppressAsyncSuffixInActionNames or a named route. The action awaited nothing."
+    code_impacts:
+      - file: "src/PaymentGateway.Api/Api/PaymentsController.cs"
+        reasoning: "[Structural - Public API] The Location header of every 201 depends on this action name; renaming it back to *Async breaks CreatedAtAction at runtime only."
+        line_ranges:
+          - start: 39
+            end: 39
+          - start: 47
+            end: 58
+
+  - number: 5
+    title: "PostPaymentResponse.CardNumberLastFour becomes a required string; Status is serialized as text through a global JsonStringEnumConverter."
+    rationale: "Leading zeros of the last four digits must survive; the spec requires textual status."
+    code_impacts:
+      - file: "src/PaymentGateway.Api/Api/Responses/PostPaymentResponse.cs"
+        reasoning: "[Structural - Core entity shape] PaymentsRepository still stores PostPaymentResponse; phase 5 records it and phase 6 returns it, so both inherit the string type."
+        line_ranges:
+          - start: 9
+            end: 12
+
+  - number: 6
+    title: "Integration tests are nested classes (Processed, RejectedWithoutCallingTheBank, BankUnavailable) of an abstract PostPaymentTests holding the factory, the IAcquiringBank substitute and a FixedTimeProvider."
+    rationale: "User request: grouping by outcome reads like JUnit @Nested; the abstract outer class has no facts so nothing runs twice."
+    code_impacts: []
+
+  - number: 7
+    title: "The controller route is the explicit lowercase literal api/payments instead of api/[controller]."
+    rationale: "User preference for lowercase REST URLs; an explicit route makes generated Location headers and Swagger lowercase. Route matching stays case-insensitive. Preferred over a global LowercaseUrls option for readability."
+    code_impacts:
+      - file: "src/PaymentGateway.Api/Api/PaymentsController.cs"
+        reasoning: "[Structural - Public API] Location headers and Swagger now expose /api/payments; clients comparing URLs case-sensitively see a different path."
+        line_ranges:
+          - start: 12
+            end: 12

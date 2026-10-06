@@ -1,0 +1,47 @@
+commit: "3b7acfd3308b8b22fb3d7abce682c2fe12f3328d"
+
+decisions:
+  - number: 1
+    title: "The domain read model Payment (Id, Status, CardNumberLastFour, CardExpiry, Amount) is separate from the storage shape PaymentEntity (primitives, Infrastructure/Persistence); PaymentEntity.From(PaymentDecision) and ToPayment() convert both ways."
+    rationale: "The domain must not carry persistence concerns nor the API DTO. Neither shape holds the full card number nor the CVV, so they cannot be persisted."
+    code_impacts:
+      - file: "src/PaymentGateway.Api/Infrastructure/Persistence/PaymentEntity.cs"
+        reasoning: "[Structural - Core entity shape] Only these fields survive the POST; anything GET returns (phase 6) has to be read from them."
+        line_ranges:
+          - start: 5
+            end: 29
+
+  - number: 2
+    title: "Port IPaymentsRepository in Domain/Ports (Add(PaymentDecision), Get(Guid) -> Payment?), implemented by PaymentsRepository over a ConcurrentDictionary<Guid, Payment>, registered as a singleton."
+    rationale: "Follows the roadmap signature; the dictionary gives O(1) lookup by id and thread safety for a singleton shared across requests. Add uses the indexer since ids are freshly generated Guids."
+    code_impacts:
+      - file: "src/PaymentGateway.Api/Domain/Ports/IPaymentsRepository.cs"
+        reasoning: "[Structural - Interface contract] Controller and processor now depend on this port; PaymentsRepository's concrete type is no longer injectable on its own."
+        line_ranges:
+          - start: 5
+            end: 10
+
+  - number: 3
+    title: "PaymentProcessor records the decision right after the bank answers, before logging and returning; a bank exception skips recording."
+    rationale: "Rejected payments never reach the processor and AcquiringBankUnavailableException propagates before Add, matching the roadmap."
+    code_impacts:
+      - file: "src/PaymentGateway.Api/Domain/Services/PaymentProcessor.cs"
+        reasoning: "[Behavioral - Control flow at boundaries] A throwing repository would now turn an answered bank call into a 500 without the payment being returned."
+        line_ranges:
+          - start: 12
+            end: 15
+
+  - number: 4
+    title: "GET still returns the raw domain Payment (Ok(payment)); PaymentsControllerTests.RetrievesAPaymentSuccessfully only asserts 200."
+    rationale: "Mapping to GetPaymentResponse is phase 6 scope; the test was adapted only to compile against the new stored type."
+    code_impacts: []
+
+  - number: 5
+    title: "CardExpiry.Restore(month, year) rebuilds a recorded expiry without any validation, through a private constructor shared with the validating one."
+    rationale: "The public constructor rejects past expiries; a card expiring after its payment was recorded would otherwise make Get throw."
+    code_impacts:
+      - file: "src/PaymentGateway.Api/Domain/Model/CardExpiry.cs"
+        reasoning: "[Behavioral - Invariant mutation] Restore bypasses month range and not-in-the-past checks; it must only be fed values that already passed the validating constructor."
+        line_ranges:
+          - start: 18
+            end: 28
