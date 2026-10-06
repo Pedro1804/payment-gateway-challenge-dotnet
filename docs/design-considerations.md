@@ -7,7 +7,7 @@ Three layers in a single project, split by folder:
 | Layer | Responsibility |
 |---|---|
 | `Api/` | Controller, request/response DTOs, HTTP ↔ domain mappers |
-| `Domain/` | Value objects, `PaymentProcessor`, `IAcquiringBank` and `IPaymentsRepository` ports, domain exceptions |
+| `Domain/` | Value objects, `PaymentProcessor` and `PaymentRetriever` services, `IAcquiringBank` and `IPaymentsRepository` ports, domain exceptions |
 | `Infrastructure/` | `AcquiringBankClient` (HTTP to the simulator), `PaymentsRepository` (in memory) |
 
 The domain only depends on its ports. Adapters are wired in `Program.cs`.
@@ -83,6 +83,6 @@ Two levels, both answered with `400 Rejected`:
 
 ## Tests
 
-- **Unit**: value objects, `PaymentProcessor`, `PaymentRequestMapper`, `PaymentsRepository`, and `AcquiringBankClient` against a fake `HttpMessageHandler` (`FakeBankHandler`).
+- **Unit**: value objects, `PaymentProcessor`, `PaymentRetriever`, `PaymentRequestMapper`, `PaymentsRepository`, and `AcquiringBankClient` against a fake `HttpMessageHandler` (`FakeBankHandler`).
 - **Integration**: full API through `WebApplicationFactory`, with the bank replaced by a substitute and a frozen clock (`FixedTimeProvider`), plus the `/health` endpoint.
 - No automated test calls the Mountebank simulator. The end-to-end flow is described in [post-payment-examples.md](post-payment-examples.md).

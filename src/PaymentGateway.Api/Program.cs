@@ -21,6 +21,7 @@ builder.Services.AddHealthChecks();
 builder.Services.AddSingleton<IPaymentsRepository, PaymentsRepository>();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddScoped<PaymentProcessor>();
+builder.Services.AddScoped<PaymentRetriever>();
 builder.Services.AddHttpClient<IAcquiringBank, AcquiringBankClient>(client =>
     client.BaseAddress = new Uri(builder.Configuration["Bank:BaseUrl"]!));
 

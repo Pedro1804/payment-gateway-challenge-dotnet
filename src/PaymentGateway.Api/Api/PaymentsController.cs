@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Mvc;
 using PaymentGateway.Api.Api.Requests;
 using PaymentGateway.Api.Api.Responses;
 using PaymentGateway.Api.Domain.Exceptions;
-using PaymentGateway.Api.Domain.Ports;
 using PaymentGateway.Api.Domain.Services;
 
 namespace PaymentGateway.Api.Api;
@@ -11,7 +10,7 @@ namespace PaymentGateway.Api.Api;
 [Route("api/payments")]
 [ApiController]
 public class PaymentsController(
-    IPaymentsRepository paymentsRepository,
+    PaymentRetriever paymentRetriever,
     PaymentProcessor paymentProcessor,
     TimeProvider timeProvider,
     ILogger<PaymentsController> logger) : Controller
@@ -41,7 +40,7 @@ public class PaymentsController(
     [HttpGet("{id:guid}")]
     public ActionResult<GetPaymentResponse> GetPayment(Guid id)
     {
-        var payment = paymentsRepository.Get(id);
+        var payment = paymentRetriever.Find(id);
 
         if (payment is null)
         {
