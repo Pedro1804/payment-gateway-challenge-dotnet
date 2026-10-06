@@ -39,3 +39,6 @@ dotnet run --project src/PaymentGateway.Api
 ```
 dotnet test
 ```
+
+> [!NOTE]
+> `CLAUDE.md`, `.claude/skills/` and `.plans/` hold the AI context and plans used while building this project. They are shared for information only and are not meant to be read.

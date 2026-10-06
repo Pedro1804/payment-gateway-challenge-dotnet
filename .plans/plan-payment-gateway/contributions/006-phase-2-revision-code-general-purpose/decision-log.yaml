@@ -1,0 +1,17 @@
+commit: "f51a407b235af3fe12ab75c3b90012e0a3e6f63d"
+
+decisions:
+  - number: 1
+    title: "Revises contributions 003 (phase 2) and 004 (phase 3): the bank authorization code is no longer read from the bank response nor carried by BankAuthorization.Authorized and PaymentDecision."
+    rationale: "YAGNI: no production code read PaymentDecision.AuthorizationCode and the challenge has no capture, refund or reconciliation use case. Removing it also removes the unhandled authorized-without-code case (004, decision 4). Re-adding it is a single adapter field when a consumer appears. User decision, before phase 5."
+    code_impacts:
+      - file: "src/PaymentGateway.Api/Infrastructure/Bank/BankPaymentResponse.cs"
+        reasoning: "[Behavioral - Invariant mutation] authorization_code is ignored: any 200 with authorized:true becomes Authorized, with or without a code."
+        line_ranges:
+          - start: 7
+            end: 11
+      - file: "src/PaymentGateway.Api/Domain/Model/PaymentDecision.cs"
+        reasoning: "[Structural - Core entity shape] PaymentDecision loses AuthorizationCode; phase 5 storage cannot record it without re-adding it end to end."
+        line_ranges:
+          - start: 3
+            end: 3

@@ -1,0 +1,62 @@
+commit: "3601101f012a49a61701d658e276b326495d3c3d"
+
+decisions:
+  - number: 1
+    title: "A caller cancellation propagates as OperationCanceledException; only a TaskCanceledException without caller cancellation (HttpClient timeout) becomes AcquiringBankUnavailableException."
+    rationale: "HttpClient reports both timeout and caller cancellation as TaskCanceledException; the exception filter on the caller token separates them. Covered by LetsTheCallerCancellationThrough (not listed in the roadmap)."
+    code_impacts:
+      - file: "src/PaymentGateway.Api/Infrastructure/Bank/AcquiringBankClient.cs"
+        reasoning: "[Behavioral - Error path change] Phase 4 must not map OperationCanceledException to 502; only AcquiringBankUnavailableException signals bank unavailability."
+        line_ranges:
+          - start: 25
+            end: 34
+
+  - number: 2
+    title: "Any non-200 bank status, including 400, is reported as AcquiringBankUnavailableException with a log carrying only the status code."
+    rationale: "Roadmap rule; the simulator answers 400 only when a field is missing, which domain validation prevents."
+    code_impacts:
+      - file: "src/PaymentGateway.Api/Infrastructure/Bank/AcquiringBankClient.cs"
+        reasoning: "[Behavioral - Error path change] A bank 400 surfaces as unavailability (502 in phase 4), not as a merchant validation error."
+        line_ranges:
+          - start: 37
+            end: 47
+
+  - number: 3
+    title: "Bank DTOs are internal records in Infrastructure/Bank; BankPaymentRequest masks its ToString because it carries the full card number and CVV."
+    code_impacts:
+      - file: "src/PaymentGateway.Api/Infrastructure/Bank/BankPaymentRequest.cs"
+        reasoning: "[Behavioral - Invariant mutation] The masked ToString is the only guard keeping card number and CVV out of logs if the DTO is ever logged; it is not covered by a test."
+        line_ranges:
+          - start: 13
+            end: 21
+
+  - number: 4
+    title: "A 200 answer with an unreadable or null body is not handled (null-forgiving operators kept); it would throw NullReferenceException or JsonException instead of AcquiringBankUnavailableException."
+    rationale: "Handling it is a behavior change, so it was left out of the refactor; it needs its own red/green cycle if retained."
+    code_impacts:
+      - file: "src/PaymentGateway.Api/Infrastructure/Bank/BankPaymentResponse.cs"
+        reasoning: "[Behavioral - Error path change] authorized:true with a null authorization_code yields Authorized(null); a null body throws NullReferenceException in AcquiringBankClient line 15."
+        line_ranges:
+          - start: 11
+            end: 13
+
+  - number: 5
+    title: "The typed HttpClient is registered with BaseAddress read from Bank:BaseUrl and posts to the relative path \"payments\"."
+    code_impacts:
+      - file: "src/PaymentGateway.Api/Program.cs"
+        reasoning: "[Structural - Dependency wiring] A Bank:BaseUrl with a path segment and no trailing slash would drop that segment when combined with \"payments\"; a missing key fails when the client is first resolved."
+        line_ranges:
+          - start: 15
+            end: 16
+
+  - number: 6
+    title: "Bank failures (non-200, network error, timeout) are logged at Error level instead of the Warning level planned in the roadmap."
+    rationale: "User choice: a bank failure blocks the payment and must stand out in monitoring."
+    code_impacts:
+      - file: "src/PaymentGateway.Api/Infrastructure/Bank/AcquiringBankClient.cs"
+        reasoning: "[Behavioral - Error path change] Every bank failure now emits an Error log; alerting thresholds based on Error volume will include bank outages."
+        line_ranges:
+          - start: 25
+            end: 34
+          - start: 37
+            end: 47

@@ -1,0 +1,42 @@
+commit: "fdfb2cc087e1c3a4be6052426d5b43554e753d2e"
+
+decisions:
+  - number: 1
+    title: "GET maps the stored Payment to a flat GetPaymentResponse through a dedicated PaymentMapper, separate from PaymentDecisionMapper."
+    rationale: "The repository returns Payment (read model) while POST maps PaymentDecision; one extension per source type keeps each mapper single-purpose. GetPaymentResponse and PostPaymentResponse stay distinct types even though their shapes are identical, so each endpoint contract can evolve independently."
+    code_impacts:
+      - file: "src/PaymentGateway.Api/Api/PaymentsController.cs"
+        reasoning: "[Structural - Public API] GET /api/payments/{id} body changes from the nested domain Payment (expiry, amount.currency) to the flat GetPaymentResponse; any client relying on the previous nested JSON breaks."
+        line_ranges:
+          - start: 42
+            end: 52
+      - file: "src/PaymentGateway.Api/Api/PaymentMapper.cs"
+        reasoning: "[Structural - Public API] The GET contract must stay field-for-field identical to the POST response (round-trip test compares both JSON bodies); a field added to one mapper and not the other fails that test."
+        line_ranges:
+          - start: 8
+            end: 17
+
+  - number: 2
+    title: "GetPaymentResponse.CardNumberLastFour is a required string instead of an int."
+    rationale: "An int drops leading zeros (\"0123\" becomes 123); string matches PostPaymentResponse and the domain Payment."
+    code_impacts:
+      - file: "src/PaymentGateway.Api/Api/Responses/GetPaymentResponse.cs"
+        reasoning: "[Structural - Public API] cardNumberLastFour is serialized as a JSON string, no longer a number."
+        line_ranges:
+          - start: 7
+            end: 7
+
+  - number: 3
+    title: "GET integration tests assert a POST→GET round trip by JSON deep equality, against the real in-memory repository with only the bank substituted."
+    rationale: "Deep equality expresses 'same data, same status' without restating each field already asserted in PostPaymentTests; the real repository exercises the PaymentDecision→Payment storage path from phase 5."
+    code_impacts: []
+
+  - number: 4
+    title: "Response DTOs (POST and GET) expose Status as a string mapped explicitly from the domain PaymentStatus in PaymentStatusMapper; no domain type appears in a response DTO."
+    rationale: "Keeps the API layer from leaking domain types; an explicit switch rather than ToString() so renaming a domain enum member cannot silently change the JSON contract."
+    code_impacts:
+      - file: "src/PaymentGateway.Api/Api/PaymentStatusMapper.cs"
+        reasoning: "[Behavioral - Invariant mutation] Mapping a status other than Authorized/Declined throws; relies on decision #5 (rejected payments are never stored nor returned as 201/200)."
+        line_ranges:
+          - start: 7
+            end: 12
