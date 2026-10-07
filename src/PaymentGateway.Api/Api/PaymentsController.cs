@@ -10,6 +10,7 @@ namespace PaymentGateway.Api.Api;
 
 [Route("api/payments")]
 [ApiController]
+[Produces("application/json")]
 public class PaymentsController(
     IPaymentsRepository paymentsRepository,
     PaymentProcessor paymentProcessor,
@@ -18,7 +19,15 @@ public class PaymentsController(
 {
     private DateOnly Today => DateOnly.FromDateTime(timeProvider.GetUtcNow().UtcDateTime);
 
+    /// <summary>Processes a card payment through the acquiring bank.</summary>
+    /// <remarks>An invalid request is rejected without reaching the bank.</remarks>
+    /// <response code="201">The bank authorized or declined the payment.</response>
+    /// <response code="400">The payment is rejected because a field is invalid.</response>
+    /// <response code="502">The acquiring bank could not be reached.</response>
     [HttpPost]
+    [ProducesResponseType<PostPaymentResponse>(StatusCodes.Status201Created)]
+    [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest, "application/problem+json")]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status502BadGateway, "application/problem+json")]
     public async Task<ActionResult<PostPaymentResponse>> PostPaymentAsync(
         PostPaymentRequest request, CancellationToken cancellationToken)
     {
@@ -38,7 +47,13 @@ public class PaymentsController(
         }
     }
 
+    /// <summary>Retrieves a previously processed payment.</summary>
+    /// <param name="id">The identifier returned when the payment was created.</param>
+    /// <response code="200">The payment exists.</response>
+    /// <response code="404">No payment has this identifier.</response>
     [HttpGet("{id:guid}")]
+    [ProducesResponseType<GetPaymentResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound, "application/problem+json")]
     public ActionResult<GetPaymentResponse> GetPayment(Guid id)
     {
         var payment = paymentsRepository.Get(id);
