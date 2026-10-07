@@ -1,5 +1,7 @@
 using System.Text.Json.Serialization;
 
+using Microsoft.OpenApi.Models;
+
 using PaymentGateway.Api.Api.Responses;
 using PaymentGateway.Api.Domain.Ports;
 using PaymentGateway.Api.Domain.Services;
@@ -13,9 +15,17 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers()
     .AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()))
     .ConfigureApiBehaviorOptions(options => options.InvalidModelStateResponseFactory = RejectedPaymentResponse.From);
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "Payment Gateway API",
+        Version = "v1",
+        Description = "Lets merchants process card payments through an acquiring bank and retrieve past payments."
+    });
+    options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, $"{typeof(Program).Assembly.GetName().Name}.xml"));
+});
 builder.Services.AddHealthChecks();
 
 builder.Services.AddSingleton<IPaymentsRepository, PaymentsRepository>();
